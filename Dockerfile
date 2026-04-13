@@ -1,20 +1,25 @@
 # --- Frontend Build Stage ---
-FROM node:20-slim AS frontend-builder
+FROM --platform=$BUILDPLATFORM node:20-slim AS frontend-builder
 WORKDIR /app/client
+# Cache dependencies
 COPY client/package*.json ./
 RUN npm install
+# Build source
 COPY client/ ./
 RUN npm run build
 
 # --- Backend Build Stage ---
 FROM rust:1.94-slim-bookworm AS backend-builder
 WORKDIR /app/server
+# Install build dependencies
 RUN apt-get update && apt-get install -y pkg-config libssl-dev libonig-dev && rm -rf /var/lib/apt/lists/*
+# Cache dependencies by building a dummy source
 COPY server/Cargo.toml server/Cargo.lock* ./
 RUN mkdir src && echo "fn main() {}" > src/main.rs
-RUN cargo build --release
-RUN rm -rf src
+RUN cargo build --release && rm -rf src
+# Build actual source
 COPY server/src ./src
+# Ensure we don't accidentally use the cached binary
 RUN touch src/main.rs && cargo build --release
 
 # --- Final Runtime Stage ---
