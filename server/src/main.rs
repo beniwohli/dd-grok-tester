@@ -12,7 +12,6 @@ use vrl::prelude::state::RuntimeState;
 use vrl::value::{Value, Secrets};
 use vrl::stdlib;
 use std::net::SocketAddr;
-use regex::Regex;
 use tracing::{info, Level};
 use tracing_subscriber;
 
@@ -61,48 +60,15 @@ async fn main() {
     info!("Server listening on http://{}", addr);
     
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
-    info!("Axum server starting...");
-    
-    axum::serve(listener, app)
-        .with_graceful_shutdown(shutdown_signal())
-        .await
-        .unwrap();
-}
-
-async fn shutdown_signal() {
-    let ctrl_c = async {
-        tokio::signal::ctrl_c()
-            .await
-            .expect("failed to install Ctrl+C handler");
-    };
-
-    #[cfg(unix)]
-    let terminate = async {
-        tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
-            .expect("failed to install signal handler")
-            .recv()
-            .await;
-    };
-
-    #[cfg(not(unix))]
-    let terminate = std::future::pending::<()>();
-
-    tokio::select! {
-        _ = ctrl_c => {
-            info!("SIGINT received, shutting down gracefully");
-        },
-        _ = terminate => {
-            info!("SIGTERM received, shutting down gracefully");
-        },
-    }
+    axum::serve(listener, app).await.unwrap();
 }
 
 async fn parse_grok_handler(Json(payload): Json<ParseRequest>) -> Json<ParseResponse> {
     info!("Request received: Parsing log sample (length: {})", payload.sample.len());
     
+    // 1. Parse match rules: "NAME PATTERN"
     let mut named_patterns = Vec::new();
     for line in payload.match_rules.lines().map(|l| l.trim()).filter(|l| !l.is_empty()) {
-        // Split by the first whitespace. If no whitespace, it's just a pattern with no name.
         let parts: Vec<&str> = line.splitn(2, |c: char| c.is_whitespace()).collect();
         if parts.len() == 2 {
             named_patterns.push((parts[0].to_string(), parts[1].trim().to_string()));
@@ -119,6 +85,7 @@ async fn parse_grok_handler(Json(payload): Json<ParseRequest>) -> Json<ParseResp
         });
     }
 
+    // 2. Parse support rules into a map for the 'aliases' parameter
     let mut support_map = BTreeMap::new();
     if let Some(support) = payload.support_rules {
         for line in support.lines().map(|l| l.trim()).filter(|l| !l.is_empty()) {
@@ -129,48 +96,18 @@ async fn parse_grok_handler(Json(payload): Json<ParseRequest>) -> Json<ParseResp
         }
     }
 
-    let grok_regex = Regex::new(r"%\{(?P<name>[\w\._-]+)(?::(?P<field>[\w\._-]+))?\}").unwrap();
-    let mut expanded_patterns = Vec::new();
+    let aliases_json = serde_json::to_string(&support_map).unwrap();
 
+    // 3. Test each pattern using parse_groks with aliases
     for (name, pattern) in named_patterns {
-        let mut current = pattern;
-        let mut depth = 0;
+        // Signature: parse_groks(value, patterns, aliases)
+        // We use [{:?}] for the single pattern array and {} for the aliases object
+        let vrl_program = format!(
+            ". = parse_groks!(.message, [{:?}], {})\n", 
+            pattern, 
+            aliases_json
+        );
         
-        loop {
-            let mut changed = false;
-            let mut next = String::new();
-            let mut last_end = 0;
-
-            for cap in grok_regex.captures_iter(&current) {
-                let full = cap.get(0).unwrap();
-                let gname = cap.name("name").unwrap().as_str();
-                let gfield = cap.name("field").map(|f| f.as_str());
-
-                next.push_str(&current[last_end..full.start()]);
-
-                if let Some(body) = support_map.get(gname) {
-                    if let Some(f) = gfield {
-                        next.push_str(&format!("(?<{}>{})", f, body));
-                    } else {
-                        next.push_str(&format!("(?:{})", body));
-                    }
-                    changed = true;
-                } else {
-                    next.push_str(full.as_str());
-                }
-                last_end = full.end();
-            }
-            next.push_str(&current[last_end..]);
-            current = next;
-            depth += 1;
-            if !changed || depth > 10 { break; }
-        }
-        expanded_patterns.push((name, current));
-    }
-
-    for (name, pattern) in expanded_patterns {
-        // Wrap the pattern in [ ] because parse_groks! expects an array
-        let vrl_program = format!(". = parse_groks!(.message, [{:?}])\n", pattern);
         let res = compile(&vrl_program, &stdlib::all());
 
         if let Ok(prog) = res {
@@ -189,7 +126,6 @@ async fn parse_grok_handler(Json(payload): Json<ParseRequest>) -> Json<ParseResp
 
             if prog.program.resolve(&mut ctx).is_ok() {
                 if let Value::Object(ref obj) = target.value {
-                    // Check if we extracted anything other than the original message
                     if obj.len() > 1 || !obj.contains_key("message") {
                         info!("Match found: rule '{}'", name);
                         return Json(ParseResponse {
