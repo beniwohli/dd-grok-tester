@@ -1,0 +1,25 @@
+.git
+.gitignore
+.dockerignore
+Dockerfile
+README.md
+
+# Node.js
+client/node_modules
+client/dist
+npm-debug.log
+
+# Rust
+server/target
+server/Cargo.lock
+
+# Python
+.venv
+__pycache__
+.pytest_cache
+tests
+
+# OS/IDE
+.DS_Store
+.vscode
+.idea

@@ -1,0 +1,14 @@
+{
+  "name": "ddgrok",
+  "version": "1.0.0",
+  "description": "Datadog Grok Pattern Tester",
+  "scripts": {
+    "start:server": "cd server && /Users/beni/.cargo/bin/cargo run",
+    "start:client": "cd client && npm run dev",
+    "dev": "concurrently \"npm run start:server\" \"npm run start:client\"",
+    "install:all": "npm install && cd client && npm install"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}
