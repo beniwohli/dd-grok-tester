@@ -15,7 +15,7 @@ def get_timestamp(date_str, fmt="%Y-%m-%dT%H:%M:%S"):
 EXAMPLES = [
   {
     "name": "Classic unstructured log",
-    "rule": "MyParsingRule %{word:user} connected on %{date(\"MM/dd/yyyy\"):date}",
+    "rule": '%{word:user} connected on %{date("MM/dd/yyyy"):date}',
     "sample": "john connected on 11/08/2017",
     "expected": {
       "user": "john",
@@ -24,18 +24,17 @@ EXAMPLES = [
   },
   {
     "name": "Key value or logfmt",
-    "rule": "rule %{data::keyvalue}",
+    "rule": "%{data::keyvalue}",
     "sample": "user=john connect_date=11/08/2017 id=123 action=click",
     "expected": {
       "user": "john",
       "id": 123,
       "action": "click"
     },
-    "datadog_specific": True
   },
   {
     "name": "Parsing dates",
-    "rule": "rule %{date(\"HH:mm:ss\"):date}",
+    "rule": "%{date(\"HH:mm:ss\"):date}",
     "sample": "14:20:15",
     "expected": {
       "date": 1776090015000
@@ -43,7 +42,7 @@ EXAMPLES = [
   },
   {
     "name": "Alternating pattern",
-    "rule": "MyParsingRule (%{integer:user.id}|%{word:user.firstname}) connected on %{date(\"MM/dd/yyyy\"):connect_date}",
+    "rule": "(%{integer:user.id}|%{word:user.firstname}) connected on %{date(\"MM/dd/yyyy\"):connect_date}",
     "sample": "john connected on 11/08/2017",
     "expected": {
       "user": {
@@ -54,20 +53,18 @@ EXAMPLES = [
   },
     {
     "name": "Alternating pattern 2",
-    "rule": "MyParsingRule (%{integer:user.id}|%{word:user.firstname}) connected on %{date(\"MM/dd/yyyy\"):connect_date}",
+    "rule": "(%{integer:user.id}|%{word:user.firstname}) connected on %{date(\"MM/dd/yyyy\"):connect_date}",
     "sample": "123 connected on 11/08/2017",
     "expected": {
-      {
       "connect_date": 1510099200000,
       "user": {
         "id": 123
-      }
       }
     }
   },
   {
     "name": "Optional attribute",
-    "rule": "MyParsingRule %{word:user.firstname} (%{integer:user.id} )?connected on %{date(\"MM/dd/yyyy\"):connect_date}",
+    "rule": "%{word:user.firstname} (%{integer:user.id} )?connected on %{date(\"MM/dd/yyyy\"):connect_date}",
     "sample": "john 1234 connected on 11/08/2017",
     "expected": {
       "user": {
@@ -79,7 +76,7 @@ EXAMPLES = [
   },
   {
     "name": "Nested JSON",
-    "rule": "parsing_rule %{date(\"MMM dd HH:mm:ss\"):timestamp} %{word:vm} %{word:app}\\[%{number:logger.thread_id}\\]: %{notSpace:server} %{data::json}",
+    "rule": "%{date(\"MMM dd HH:mm:ss\"):timestamp} %{word:vm} %{word:app}\\[%{number:logger.thread_id}\\]: %{notSpace:server} %{data::json}",
     "sample": "Sep 06 09:13:38 vagrant program[123]: server.1 {\"method\":\"GET\", \"status_code\":200, \"url\":\"https://app.datadoghq.com/logs/pipelines\", \"duration\":123456}",
     "expected": {
       "vm": "vagrant",
@@ -88,11 +85,10 @@ EXAMPLES = [
         "thread_id": 123
       }
     },
-    "datadog_specific": True
   },
   {
     "name": "Regex",
-    "rule": "MyParsingRule %{regex(\"[a-z]*\"):user.firstname}_%{regex(\"[a-zA-Z0-9]*\"):user.id} .*",
+    "rule": "%{regex(\"[a-z]*\"):user.firstname}_%{regex(\"[a-zA-Z0-9]*\"):user.id} .*",
     "sample": "john_1a2b3c4 connected on 11/08/2017",
     "expected": {
       "user": {
@@ -103,7 +99,7 @@ EXAMPLES = [
   },
   {
     "name": "List to array",
-    "rule": "myParsingRule Users %{data:users:array(\"[]\",\",\")} have been added to the database",
+    "rule": "Users %{data:users:array(\"[]\",\",\")} have been added to the database",
     "sample": "Users [John, Oliver, Marc, Tom] have been added to the database",
     "expected": {
       "users": [
@@ -113,26 +109,25 @@ EXAMPLES = [
         " Tom"
       ]
     },
-    "datadog_specific": True
   },
   {
     "name": "Glog format",
-    "rule": "kube_scheduler %{regex(\"\\\\w\"):level}%{date(\"MMdd HH:mm:ss.SSSSSS\"):timestamp}\\s+%{number:logger.thread_id} %{notSpace:logger.name}:%{number:logger.lineno}\\] %{data:msg}",
+    "rule": "%{regex(\"\\\\w\"):level}%{date(\"MMdd HH:mm:ss.SSSSSS\"):timestamp}\\s+%{number:logger.thread_id} %{notSpace:logger.name}:%{number:logger.lineno}\\] %{data:msg}",
     "sample": "W0424 11:47:41.605188       1 authorization.go:47] Authorization is disabled",
     "expected": {
       "level": "W",
-      "timestamp": 1587728861605,
+      "timestamp": 1777031261605,
       "logger": {
         "thread_id": 1,
-        "name": "authorization.go"
+        "name": "authorization.go",
+        "lineno": 47,
       },
-      "lineno": 47,
       "msg": "Authorization is disabled"
     }
   },
   {
     "name": "Parsing XML",
-    "rule": "rule %{data::xml}",
+    "rule": "%{data::xml}",
     "sample": "<book category=\"CHILDREN\">\n  <title lang=\"en\">Harry Potter</title>\n  <author>J K. Rowling</author>\n  <year>2005</year>\n</book>",
     "expected": {
       "book": {
@@ -143,7 +138,7 @@ EXAMPLES = [
   },
   {
     "name": "Parsing CSV",
-    "rule": "myParsingRule %{data:user:csv(\"first_name,name,st_nb,st_name,city\")}",
+    "rule": "%{data:user:csv(\"first_name,name,st_nb,st_name,city\")}",
     "sample": "John,Doe,120,Jefferson St.,Riverside",
     "expected": {
       "user": {
@@ -154,7 +149,7 @@ EXAMPLES = [
   },
   {
     "name": "Use data matcher to discard unneeded text",
-    "rule": "MyParsingRule Usage\\:\\s+%{number:usage}%{data:ignore}",
+    "rule": "Usage\\:\\s+%{number:usage}%{data:ignore}",
     "sample": "Usage: 24.3%",
     "expected": {
       "usage": 24.3,
