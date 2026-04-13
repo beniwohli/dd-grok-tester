@@ -18,23 +18,19 @@ A web application for testing Datadog-specific Grok patterns locally using Vecto
 
 ## Installation and Usage
 
-### Using Docker
+### Using the Pre-built Docker Image
 
-The easiest way to run the application is using the provided multi-stage Dockerfile.
+The easiest way to run the application is to use the pre-built image from GitHub Container Registry:
 
-1. Build the image:
-   ```bash
-   docker build -t datadog-grok-tester .
-   ```
+```bash
+docker run -p 3001:3001 ghcr.io/beniwohli/dd-grok-tester:latest
+```
 
-2. Run the container:
-   ```bash
-   docker run -p 3001:3001 datadog-grok-tester
-   ```
+Access the application at `http://localhost:3001`.
 
-3. Access the application at `http://localhost:3001`.
+### Building from Source (Docker)
 
-### Local Development
+If you prefer to build the image locally:
 
 1. Install dependencies for all components:
    ```bash
