@@ -40,10 +40,15 @@ jobs:
     - name: Build frontend
       run: cd client && npm run build
 
+    - name: Build backend
+      run: |
+        cd server
+        cargo build
+
     - name: Run backend in background
       run: |
         cd server
-        cargo run &
+        target/debug/server &
         # Wait for server to be ready
         for i in {1..30}; do
           if curl -s http://localhost:3001 > /dev/null; then
