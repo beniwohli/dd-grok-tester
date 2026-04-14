@@ -17,6 +17,7 @@ interface ParseResult {
 
 interface HistoryItem {
   id: string;
+  name?: string;
   timestamp: number;
   matchRules: string;
   supportRules: string;
@@ -25,13 +26,68 @@ interface HistoryItem {
 
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
+const JsonFormatter = ({ data }: { data: any }) => {
+  if (typeof data === 'number' && data > 1000000000000 && data < 2000000000000) {
+    // Likely a timestamp in ms (between 2001 and 2033)
+    const iso = new Date(data).toISOString();
+    return <span className="timestamp-val" data-iso={iso}>{data}</span>;
+  }
+
+  if (data === null) return <span style={{ color: '#94a3b8' }}>null</span>;
+  if (typeof data === 'string') return <span style={{ color: '#4ade80' }}>"{data}"</span>;
+  if (typeof data === 'boolean') return <span style={{ color: '#fb923c' }}>{String(data)}</span>;
+  if (typeof data === 'number') return <span style={{ color: '#fb923c' }}>{data}</span>;
+
+  if (Array.isArray(data)) {
+    return (
+      <span>
+        [
+        <div style={{ paddingLeft: '1.5rem' }}>
+          {data.map((item, i) => (
+            <div key={i}>
+              <JsonFormatter data={item} />
+              {i < data.length - 1 ? ',' : ''}
+            </div>
+          ))}
+        </div>
+        ]
+      </span>
+    );
+  }
+
+  if (typeof data === 'object') {
+    const keys = Object.keys(data);
+    return (
+      <span>
+        {'{'}
+        <div style={{ paddingLeft: '1.5rem' }}>
+          {keys.map((key, i) => (
+            <div key={key}>
+              <span style={{ color: '#818cf8' }}>"{key}"</span>: <JsonFormatter data={data[key]} />
+              {i < keys.length - 1 ? ',' : ''}
+            </div>
+          ))}
+        </div>
+        {'}'}
+      </span>
+    );
+  }
+
+  return <span>{String(data)}</span>;
+};
+
 function App() {
   const [currentTab, setCurrentTab] = useState<'test' | 'history'>('test');
   const [toast, setToast] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const ddIntegrationInputRef = useRef<HTMLInputElement>(null);
   
   const [currentSessionId, setCurrentSessionId] = useState<string>(() => {
     return localStorage.getItem('dd-grok-session-id') || generateId();
+  });
+
+  const [sessionName, setSessionName] = useState<string>(() => {
+    return localStorage.getItem('dd-grok-session-name') || '';
   });
 
   const [samples, setSamples] = useState<Sample[]>(() => {
@@ -64,10 +120,11 @@ function App() {
   // Persist current session state
   useEffect(() => {
     localStorage.setItem('dd-grok-session-id', currentSessionId);
+    localStorage.setItem('dd-grok-session-name', sessionName);
     localStorage.setItem('dd-grok-samples-v2', JSON.stringify(samples));
     localStorage.setItem('dd-grok-match-rules', matchRules);
     localStorage.setItem('dd-grok-support-rules', supportRules);
-  }, [currentSessionId, samples, matchRules, supportRules]);
+  }, [currentSessionId, sessionName, samples, matchRules, supportRules]);
 
   // Persist history
   useEffect(() => {
@@ -159,6 +216,7 @@ function App() {
 
   const clearSession = () => {
     if (window.confirm('Are you sure you want to clear the current session? Unsaved changes will be lost.')) {
+      setSessionName('');
       setMatchRules('');
       setSupportRules('');
       setSamples([{ id: generateId(), text: '' }]);
@@ -171,8 +229,9 @@ function App() {
   const saveToHistory = () => {
     const existingIndex = history.findIndex(item => item.id === currentSessionId);
     
-    const sessionData = {
+    const sessionData: HistoryItem = {
       id: currentSessionId,
+      name: sessionName || undefined,
       timestamp: Date.now(),
       matchRules,
       supportRules,
@@ -192,6 +251,7 @@ function App() {
 
   const loadFromHistory = (item: HistoryItem) => {
     setCurrentSessionId(item.id);
+    setSessionName(item.name || '');
     setMatchRules(item.matchRules);
     setSupportRules(item.supportRules);
     setSamples(item.samples);
@@ -203,6 +263,13 @@ function App() {
   const deleteFromHistory = (id: string) => {
     setHistory(history.filter(item => item.id !== id));
     showToast('Session deleted from history');
+  };
+
+  const clearHistory = () => {
+    if (window.confirm('Are you sure you want to delete all saved sessions? This cannot be undone.')) {
+      setHistory([]);
+      showToast('History cleared');
+    }
   };
 
   const exportHistory = () => {
@@ -224,6 +291,7 @@ function App() {
       try {
         const imported = JSON.parse(e.target?.result as string);
         if (Array.isArray(imported)) {
+          // Basic validation for our own history format
           const isValid = imported.every(item => item.id && item.matchRules && item.samples);
           if (isValid) {
             setHistory([...imported, ...history]);
@@ -238,6 +306,53 @@ function App() {
     };
     reader.readAsText(file);
     if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const importDatadogIntegrations = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const integrations = JSON.parse(e.target?.result as string);
+        const newSessions: HistoryItem[] = [];
+
+        if (Array.isArray(integrations)) {
+          integrations.forEach((integration: any) => {
+            const pipeline = integration.pipeline;
+            if (pipeline && Array.isArray(pipeline.processors)) {
+              pipeline.processors.forEach((processor: any) => {
+                if (processor.type === 'grok-parser' && processor.grok) {
+                  newSessions.push({
+                    id: generateId(),
+                    name: pipeline.name || undefined,
+                    timestamp: Date.now(),
+                    matchRules: processor.grok.matchRules || '',
+                    supportRules: processor.grok.supportRules || '',
+                    samples: (processor.samples || []).map((s: string) => ({
+                      id: generateId(),
+                      text: s
+                    }))
+                  });
+                }
+              });
+            }
+          });
+
+          if (newSessions.length > 0) {
+            setHistory([...newSessions, ...history]);
+            showToast(`Imported ${newSessions.length} grok processors from integrations`);
+          } else {
+            showToast('No grok processors found in file');
+          }
+        }
+      } catch (err) {
+        showToast('Error parsing integrations file');
+      }
+    };
+    reader.readAsText(file);
+    if (event.target) event.target.value = '';
   };
 
   const escapeHCLString = (str: string) => {
@@ -326,6 +441,16 @@ ${supportRulesList}
             </div>
             <div style={{ display: 'grid', gap: '1rem' }}>
               <div>
+                <label className="label-text">Session Name (Optional)</label>
+                <input 
+                  type="text" 
+                  value={sessionName} 
+                  onChange={(e) => setSessionName(e.target.value)}
+                  placeholder="e.g. KyotoTycoon"
+                  style={{ marginBottom: '0.5rem' }}
+                />
+              </div>
+              <div>
                 <label className="label-text">Match Rules (RULE_NAME PATTERN, one per line)</label>
                 <textarea 
                   value={matchRules} 
@@ -391,7 +516,9 @@ ${supportRulesList}
                             </div>
                           )}
                         </div>
-                        <pre style={{ margin: 0 }}>{JSON.stringify(results[sample.id].parsed, null, 2)}</pre>
+                        <pre style={{ margin: 0 }}>
+                          <JsonFormatter data={results[sample.id].parsed} />
+                        </pre>
                       </div>
                     ) : (
                       <div className="result-error">
@@ -423,12 +550,25 @@ ${supportRulesList}
                 <button className="btn btn-outline" onClick={() => fileInputRef.current?.click()}>
                   <Upload size={16} /> Import JSON
                 </button>
+                <button className="btn btn-outline" onClick={() => ddIntegrationInputRef.current?.click()}>
+                  <Upload size={16} /> Import Datadog Integrations
+                </button>
+                <button className="btn btn-danger" style={{ border: '1px solid var(--error-color)' }} onClick={clearHistory}>
+                  <Trash2 size={16} /> Clear History
+                </button>
                 <input 
                   type="file" 
                   ref={fileInputRef} 
                   style={{ display: 'none' }} 
                   accept=".json" 
                   onChange={importHistory}
+                />
+                <input 
+                  type="file" 
+                  ref={ddIntegrationInputRef} 
+                  style={{ display: 'none' }} 
+                  accept=".json" 
+                  onChange={importDatadogIntegrations}
                 />
               </div>
             </div>
@@ -449,10 +589,17 @@ ${supportRulesList}
                       )}
                     </div>
                     <div className="history-summary">
-                      {item.matchRules.split('\n')[0] || 'No rules'} 
-                      {item.matchRules.split('\n').length > 1 ? ' ...' : ''}
-                      <span style={{ margin: '0 8px', color: '#e2e8f0' }}>|</span>
-                      {item.samples.length} sample(s)
+                      {item.name ? (
+                        <strong style={{ display: 'block', marginBottom: '4px', fontSize: '14px', color: 'var(--text-color)' }}>
+                          {item.name}
+                        </strong>
+                      ) : null}
+                      <div style={{ color: 'var(--text-muted)' }}>
+                        {item.matchRules.split('\n')[0] || 'No rules'} 
+                        {item.matchRules.split('\n').length > 1 ? ' ...' : ''}
+                        <span style={{ margin: '0 8px', color: '#e2e8f0' }}>|</span>
+                        {item.samples.length} sample(s)
+                      </div>
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: '0.5rem' }}>

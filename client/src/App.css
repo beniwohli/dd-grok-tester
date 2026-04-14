@@ -180,6 +180,29 @@ input:focus {
   min-height: 42px;
 }
 
+.timestamp-val {
+  text-decoration: underline dotted #64748b;
+  cursor: help;
+  position: relative;
+}
+
+.timestamp-val:hover::after {
+  content: attr(data-iso);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #0f172a;
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 10px;
+  white-space: nowrap;
+  margin-bottom: 4px;
+  z-index: 10;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+}
+
 .result-error {
   color: #fca5a5;
 }
