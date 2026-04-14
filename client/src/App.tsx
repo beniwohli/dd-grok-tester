@@ -676,15 +676,19 @@ useEffect(() => {
     }`;
     };
 
-    const supportRulesList = supportRules.split('\n').map((l: string) => l.trim()).filter((l: string) => l.length > 0).map((line: string) => {
-      const firstSpaceIdx = line.search(/\s/);
-      const name = firstSpaceIdx !== -1 ? line.substring(0, firstSpaceIdx) : 'rule';
-      const pattern = firstSpaceIdx !== -1 ? line.substring(firstSpaceIdx).trim() : line;
-      return `    {
-      name    = "${escapeHCLString(name)}"
-      pattern = "${escapeHCLString(pattern)}"
-    }`;
-    }).join(',\n');
+    const rulesList = matchRules
+      .split('\n')
+      .map((l: string) => l.trim())
+      .filter((l: string) => l.length > 0)
+      .map(toHCLBlock)
+      .join(',\n');
+
+    const supportRulesList = supportRules
+      .split('\n')
+      .map((l: string) => l.trim())
+      .filter((l: string) => l.length > 0)
+      .map(toHCLBlock)
+      .join(',\n');
 
     const hcl = `{
   id_prefix   = ""
