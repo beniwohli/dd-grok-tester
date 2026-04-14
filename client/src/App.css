@@ -96,6 +96,32 @@ textarea:focus {
   outline-offset: -1px;
 }
 
+/* Code Editor Styles */
+.editor-container {
+  border: 1px solid var(--border-color);
+  border-radius: 0.5rem;
+  background-color: #fff;
+  overflow: hidden;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.editor-container:focus-within {
+  outline: 2px solid var(--primary-color);
+  outline-offset: -1px;
+}
+
+.grok-editor {
+  min-height: 100px;
+}
+
+/* Grok Syntax Highlighting */
+.token.grok-rule-name { color: #6366f1; font-weight: bold; }
+.token.grok-braces { color: #fb923c; }
+.token.grok-pattern { color: #fb923c; }
+.token.grok-capture { color: #22c55e; }
+.token.grok-type { color: #818cf8; font-style: italic; }
+.token.comment { color: #94a3b8; }
+
 input[type="text"] {
   width: 100%;
   padding: 0.75rem;
