@@ -12,7 +12,7 @@ use vrl::prelude::state::RuntimeState;
 use vrl::value::{Value, Secrets};
 use vrl::stdlib;
 use std::net::SocketAddr;
-use tracing::{info, Level};
+use tracing::{debug, info, Level};
 use tracing_subscriber;
 
 #[derive(Deserialize)]
@@ -22,7 +22,7 @@ struct ParseRequest {
     support_rules: Option<String>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Default)]
 struct ParseResponse {
     parsed: Option<serde_json::Value>,
     matched_rule: Option<String>,
@@ -79,54 +79,98 @@ async fn parse_grok_handler(Json(payload): Json<ParseRequest>) -> Json<ParseResp
 
     if named_patterns.is_empty() {
         return Json(ParseResponse {
-            parsed: None,
-            matched_rule: None,
             error: Some("No match rules provided".to_string()),
+            ..Default::default()
         });
     }
 
-    // 2. Parse support rules into a map for the 'aliases' parameter
+    // 2. Parse support rules into a map for the 'aliases' parameter.
+    // Lines that lack a name/pattern separator are surfaced as errors rather
+    // than silently dropped, since a misconfigured alias is hard to debug.
     let mut support_map = BTreeMap::new();
     if let Some(support) = payload.support_rules {
         for line in support.lines().map(|l| l.trim()).filter(|l| !l.is_empty()) {
             let parts: Vec<&str> = line.splitn(2, |c: char| c.is_whitespace()).collect();
             if parts.len() == 2 {
                 support_map.insert(parts[0].to_string(), parts[1].trim().to_string());
+            } else {
+                return Json(ParseResponse {
+                    error: Some(format!(
+                        "Malformed support rule (expected \"NAME PATTERN\"): {:?}",
+                        line
+                    )),
+                    ..Default::default()
+                });
             }
         }
     }
 
     let aliases_json = serde_json::to_string(&support_map).unwrap();
 
-    // 3. Test each pattern using parse_groks with aliases
+    // 3. Test each pattern using parse_groks (fallible variant) with aliases.
+    //
+    // Using the fallible `parse_groks(...)` rather than `parse_groks!(...)` is
+    // intentional: the infallible variant aborts the VRL program on a no-match,
+    // giving us no opportunity to try the next rule. The fallible variant
+    // returns an Err value that lets the program continue and lets us detect
+    // "no match" vs a genuine runtime error.
     for (name, pattern) in named_patterns {
-        // Signature: parse_groks(value, patterns, aliases)
-        // We use [{:?}] for the single pattern array and {} for the aliases object
         let vrl_program = format!(
-            ". = parse_groks!(.message, [{:?}], {})\n",
+            "result, err = parse_groks(.message, [{:?}], {})\n\
+             if is_null(err) {{ . = object!(result) }}\n",
             pattern,
             aliases_json
         );
 
-        let res = compile(&vrl_program, &stdlib::all());
+        let compiled = compile(&vrl_program, &stdlib::all());
 
-        if let Ok(prog) = res {
-            let mut event = BTreeMap::new();
-            event.insert("message".into(), Value::from(payload.sample.clone()));
+        let prog = match compiled {
+            Err(diag) => {
+                let error_msg = diag.iter().map(|d| {
+                    let msg = &d.message;
+                    // VRL grok errors are often very verbose. Try to extract the meaningful part.
+                    if let Some(pos) = msg.find("]: ") {
+                        msg[pos + 3..].to_string()
+                    } else if let Some(pos) = msg.find("error: ") {
+                        msg[pos + 7..].to_string()
+                    } else {
+                        msg.clone()
+                    }
+                }).collect::<Vec<_>>().join("\n");
 
-            let mut value = Value::Object(event.clone());
-            let mut target = TargetValue {
-                value: value.clone(),
-                metadata: Value::Object(BTreeMap::new()),
-                secrets: Secrets::default(),
-            };
+                return Json(ParseResponse {
+                    parsed: None,
+                    matched_rule: None,
+                    error: Some(format!("Rule '{}': {}", name, error_msg)),
+                });
+            }
+            Ok(p) => p,
+        };
 
-            let mut state = RuntimeState::default();
-            let mut ctx = Context::new(&mut target, &mut state, &TimeZone::Local);
+        let mut event: BTreeMap<_, _> = Default::default();
+        event.insert("message".into(), Value::from(payload.sample.clone()));
 
-            if prog.program.resolve(&mut ctx).is_ok() {
+        let mut target = TargetValue {
+            value: Value::Object(event),
+            metadata: Value::Object(Default::default()),
+            secrets: Secrets::default(),
+        };
+
+        let mut state = RuntimeState::default();
+        let mut ctx = Context::new(&mut target, &mut state, &TimeZone::Local);
+
+        match prog.program.resolve(&mut ctx) {
+            Ok(_) => {
+                // A successful parse replaces the root object via `object!(result)`.
+                // If the result is still just `{message: ...}` unchanged, the
+                // pattern matched nothing useful — skip to the next rule.
                 if let Value::Object(ref obj) = target.value {
-                    if obj.len() > 1 || !obj.contains_key("message") {
+                    let only_original_message = obj.len() == 1
+                        && obj.get("message").map_or(false, |v| {
+                            matches!(v, Value::Bytes(b) if b.as_ref() == payload.sample.as_bytes())
+                        });
+
+                    if !only_original_message {
                         info!("Match found: rule '{}'", name);
                         return Json(ParseResponse {
                             parsed: Some(vrl_value_to_json(target.value)),
@@ -135,17 +179,17 @@ async fn parse_grok_handler(Json(payload): Json<ParseRequest>) -> Json<ParseResp
                         });
                     }
                 }
+                debug!("Rule '{}' produced no parsed fields, trying next", name);
             }
-        } else if let Err(diag) = res {
-             info!("Compilation failed for rule '{}': {:?}", name, diag);
+            Err(e) => {
+                debug!("Rule '{}' did not match: {}", name, e);
+            }
         }
     }
 
     info!("No match found for log sample");
     Json(ParseResponse {
-        parsed: None,
-        matched_rule: None,
-        error: None,
+        ..Default::default()
     })
 }
 
@@ -174,7 +218,7 @@ fn vrl_value_to_json(val: Value) -> serde_json::Value {
         Value::Bytes(b) => serde_json::Value::String(String::from_utf8_lossy(&b).to_string()),
         Value::Timestamp(t) => {
             serde_json::Value::Number(t.timestamp_millis().into())
-        },
+        }
         Value::Null => serde_json::Value::Null,
         _ => serde_json::Value::Null,
     }
