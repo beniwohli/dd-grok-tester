@@ -67,6 +67,140 @@ interface HistoryItem {
   samples: Sample[];
 }
 
+interface DDImportCandidate {
+  // Stable key used for checkbox tracking — derived from pipeline name + processor
+  // index so it doesn't depend on generateId() and stays consistent across re-renders
+  // of the same dialog session.
+  key: string;
+  name: string;
+  matchRules: string;
+  supportRules: string;
+  samples: Sample[];
+}
+
+// ---------------------------------------------------------------------------
+// ImportDialog — shown after parsing a Datadog integrations JSON file.
+// Lets the user search and cherry-pick which grok processors to import.
+// ---------------------------------------------------------------------------
+interface ImportDialogProps {
+  candidates: DDImportCandidate[];
+  onConfirm: (selected: DDImportCandidate[]) => void;
+  onCancel: () => void;
+}
+
+const ImportDialog = ({ candidates, onConfirm, onCancel }: ImportDialogProps) => {
+  const [query, setQuery] = useState('');
+  const [checkedKeys, setCheckedKeys] = useState<Set<string>>(
+    () => new Set(candidates.map(c => c.key))
+  );
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  // Focus the search field as soon as the dialog mounts.
+  useEffect(() => {
+    searchRef.current?.focus();
+  }, []);
+
+  const filtered = query.trim()
+    ? candidates.filter(c =>
+        c.name.toLowerCase().includes(query.toLowerCase()) ||
+        c.matchRules.toLowerCase().includes(query.toLowerCase())
+      )
+    : candidates;
+
+  const allFilteredChecked = filtered.length > 0 && filtered.every(c => checkedKeys.has(c.key));
+
+  const toggleOne = (key: string) => {
+    setCheckedKeys(prev => {
+      const next = new Set(prev);
+      next.has(key) ? next.delete(key) : next.add(key);
+      return next;
+    });
+  };
+
+  const toggleAllFiltered = () => {
+    setCheckedKeys(prev => {
+      const next = new Set(prev);
+      if (allFilteredChecked) {
+        filtered.forEach(c => next.delete(c.key));
+      } else {
+        filtered.forEach(c => next.add(c.key));
+      }
+      return next;
+    });
+  };
+
+  const handleConfirm = () => {
+    onConfirm(candidates.filter(c => checkedKeys.has(c.key)));
+  };
+
+  const checkedCount = candidates.filter(c => checkedKeys.has(c.key)).length;
+
+  return (
+    <div className="dialog-backdrop" onClick={onCancel}>
+      <div className="dialog" onClick={e => e.stopPropagation()}>
+        <div className="dialog-header">
+          <span className="dialog-title">Import Datadog integrations</span>
+          <span className="dialog-subtitle">{candidates.length} grok processors found</span>
+        </div>
+
+        <div className="dialog-search">
+          <input
+            ref={searchRef}
+            type="text"
+            placeholder="Search by name or rule pattern…"
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+          />
+        </div>
+
+        <div className="dialog-list-header">
+          <label className="dialog-check-row dialog-check-all">
+            <input
+              type="checkbox"
+              checked={allFilteredChecked}
+              onChange={toggleAllFiltered}
+            />
+            <span>{allFilteredChecked ? 'Deselect all' : 'Select all'}{query ? ' matching' : ''}</span>
+            <span className="dialog-count">{filtered.length} shown</span>
+          </label>
+        </div>
+
+        <div className="dialog-list">
+          {filtered.length === 0 ? (
+            <div className="dialog-empty">No processors match "{query}"</div>
+          ) : (
+            filtered.map(c => (
+              <label key={c.key} className="dialog-check-row">
+                <input
+                  type="checkbox"
+                  checked={checkedKeys.has(c.key)}
+                  onChange={() => toggleOne(c.key)}
+                />
+                <span className="dialog-item-name">{c.name || <em>Unnamed</em>}</span>
+                <span className="dialog-item-meta">
+                  {c.matchRules.split('\n').filter(Boolean).length} rule(s)
+                  {c.samples.length > 0 && ` · ${c.samples.length} sample(s)`}
+                </span>
+              </label>
+            ))
+          )}
+        </div>
+
+        <div className="dialog-footer">
+          <button className="btn btn-outline" onClick={onCancel}>Cancel</button>
+          <button
+            className="btn btn-primary"
+            onClick={handleConfirm}
+            disabled={checkedCount === 0}
+          >
+            Import {checkedCount > 0 ? checkedCount : ''} session{checkedCount !== 1 ? 's' : ''}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // Discriminated union describing which destructive action is awaiting confirmation.
 // Keeping it typed (rather than a bare string) means the compiler catches any
 // site that forgets to handle a variant.
@@ -206,6 +340,10 @@ function App() {
 
   const [results, setResults] = useState<Record<string, ParseResult>>({});
   const lastRequestTimer = useRef<number | null>(null);
+
+  // Populated when a Datadog integrations file is parsed; cleared after the
+  // user confirms or cancels the import dialog.
+  const [ddImportCandidates, setDdImportCandidates] = useState<DDImportCandidate[] | null>(null);
 
   const showToast = (message: string) => {
     setToast(message);
@@ -474,33 +612,31 @@ useEffect(() => {
     reader.onload = (e) => {
       try {
         const integrations = JSON.parse(e.target?.result as string);
-        const newSessions: HistoryItem[] = [];
+        const candidates: DDImportCandidate[] = [];
 
         if (Array.isArray(integrations)) {
           integrations.forEach((integration: any) => {
             const pipeline = integration.pipeline;
             if (pipeline && Array.isArray(pipeline.processors)) {
-              pipeline.processors.forEach((processor: any) => {
+              pipeline.processors.forEach((processor: any, processorIdx: number) => {
                 if (processor.type === 'grok-parser' && processor.grok) {
-                  newSessions.push({
-                    id: generateId(),
-                    name: pipeline.name || undefined,
-                    timestamp: Date.now(),
+                  candidates.push({
+                    key: `${pipeline.name ?? 'unnamed'}-${processorIdx}`,
+                    name: pipeline.name || '',
                     matchRules: processor.grok.matchRules || '',
                     supportRules: processor.grok.supportRules || '',
                     samples: (processor.samples || []).map((s: string) => ({
                       id: generateId(),
-                      text: s
-                    }))
+                      text: s,
+                    })),
                   });
                 }
               });
             }
           });
 
-          if (newSessions.length > 0) {
-            setHistory([...newSessions, ...history]);
-            showToast(`Imported ${newSessions.length} grok processors from integrations`);
+          if (candidates.length > 0) {
+            setDdImportCandidates(candidates);
           } else {
             showToast('No grok processors found in file');
           }
@@ -797,6 +933,14 @@ ${supportRulesList}
             )}
           </div>
         </>
+      )}
+
+      {ddImportCandidates && (
+        <ImportDialog
+          candidates={ddImportCandidates}
+          onConfirm={confirmDdImport}
+          onCancel={() => setDdImportCandidates(null)}
+        />
       )}
     </div>
   );
