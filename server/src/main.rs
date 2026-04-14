@@ -66,28 +66,10 @@ async fn main() {
 async fn parse_grok_handler(Json(payload): Json<ParseRequest>) -> Json<ParseResponse> {
     info!("Request received: Parsing log sample (length: {})", payload.sample.len());
 
-    // 1. Parse match rules: "NAME PATTERN"
     let mut named_patterns = Vec::new();
-    for line in payload.match_rules.lines().map(|l| l.trim()).filter(|l| !l.is_empty()) {
-        let parts: Vec<&str> = line.splitn(2, |c: char| c.is_whitespace()).collect();
-        if parts.len() == 2 {
-            named_patterns.push((parts[0].to_string(), parts[1].trim().to_string()));
-        } else {
-            named_patterns.push((format!("rule_{}", named_patterns.len()), line.to_string()));
-        }
-    }
-
-    if named_patterns.is_empty() {
-        return Json(ParseResponse {
-            error: Some("No match rules provided".to_string()),
-            ..Default::default()
-        });
-    }
-
-    // 2. Parse support rules into a map for the 'aliases' parameter.
-    // Lines that lack a name/pattern separator are surfaced as errors rather
-    // than silently dropped, since a misconfigured alias is hard to debug.
     let mut support_map = BTreeMap::new();
+
+    // 1. Parse explicit support rules into the alias map.
     if let Some(support) = payload.support_rules {
         for line in support.lines().map(|l| l.trim()).filter(|l| !l.is_empty()) {
             let parts: Vec<&str> = line.splitn(2, |c: char| c.is_whitespace()).collect();
@@ -103,6 +85,28 @@ async fn parse_grok_handler(Json(payload): Json<ParseRequest>) -> Json<ParseResp
                 });
             }
         }
+    }
+
+    // 2. Parse match rules: "NAME PATTERN"
+    // We add these to the support_map as well so they can be referenced by other rules.
+    for line in payload.match_rules.lines().map(|l| l.trim()).filter(|l| !l.is_empty()) {
+        let parts: Vec<&str> = line.splitn(2, |c: char| c.is_whitespace()).collect();
+        if parts.len() == 2 {
+            let name = parts[0].to_string();
+            let pattern = parts[1].trim().to_string();
+            named_patterns.push((name.clone(), pattern.clone()));
+            // Allow match rules to be used as aliases in other match rules
+            support_map.insert(name, pattern);
+        } else {
+            named_patterns.push((format!("rule_{}", named_patterns.len()), line.to_string()));
+        }
+    }
+
+    if named_patterns.is_empty() {
+        return Json(ParseResponse {
+            error: Some("No match rules provided".to_string()),
+            ..Default::default()
+        });
     }
 
     let aliases_json = serde_json::to_string(&support_map).unwrap();
