@@ -168,19 +168,19 @@ def test_datadog_example(example):
         "match_rules": f"rule {example['rule']}",
         "support_rules": ""
     }
-    
+
     response = requests.post(f"{BASE_URL}/parse", json=payload)
     assert response.status_code == 200
-    
+
     data = response.json()
     assert data["error"] is None, f"Parsing failed for {example['name']}: {data['error']}"
-    
+
     parsed = data["parsed"]
     assert parsed is not None, f"Match failed for {example['name']}. No results returned."
-    
+
     # Filter actual results to only include the keys we expect to see
     actual = {k: v for k, v in parsed.items() if k in example["expected"]}
-    
+
     # Direct dictionary comparison for clear pytest diffs
     assert actual == example["expected"]
 

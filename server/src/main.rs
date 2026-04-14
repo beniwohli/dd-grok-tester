@@ -55,17 +55,17 @@ async fn main() {
         .unwrap_or_else(|_| "3001".to_string())
         .parse::<u16>()
         .expect("PORT must be a number");
-    
+
     let addr = SocketAddr::from(([0, 0, 0, 0], port));
     info!("Server listening on http://{}", addr);
-    
+
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
     axum::serve(listener, app).await.unwrap();
 }
 
 async fn parse_grok_handler(Json(payload): Json<ParseRequest>) -> Json<ParseResponse> {
     info!("Request received: Parsing log sample (length: {})", payload.sample.len());
-    
+
     // 1. Parse match rules: "NAME PATTERN"
     let mut named_patterns = Vec::new();
     for line in payload.match_rules.lines().map(|l| l.trim()).filter(|l| !l.is_empty()) {
@@ -103,24 +103,24 @@ async fn parse_grok_handler(Json(payload): Json<ParseRequest>) -> Json<ParseResp
         // Signature: parse_groks(value, patterns, aliases)
         // We use [{:?}] for the single pattern array and {} for the aliases object
         let vrl_program = format!(
-            ". = parse_groks!(.message, [{:?}], {})\n", 
-            pattern, 
+            ". = parse_groks!(.message, [{:?}], {})\n",
+            pattern,
             aliases_json
         );
-        
+
         let res = compile(&vrl_program, &stdlib::all());
 
         if let Ok(prog) = res {
             let mut event = BTreeMap::new();
             event.insert("message".into(), Value::from(payload.sample.clone()));
-            
+
             let mut value = Value::Object(event.clone());
             let mut target = TargetValue {
                 value: value.clone(),
                 metadata: Value::Object(BTreeMap::new()),
                 secrets: Secrets::default(),
             };
-            
+
             let mut state = RuntimeState::default();
             let mut ctx = Context::new(&mut target, &mut state, &TimeZone::Local);
 
