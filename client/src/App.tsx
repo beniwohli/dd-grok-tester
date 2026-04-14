@@ -649,6 +649,20 @@ useEffect(() => {
     if (event.target) event.target.value = '';
   };
 
+  const confirmDdImport = (selected: DDImportCandidate[]) => {
+    const newSessions: HistoryItem[] = selected.map(c => ({
+      id: generateId(),
+      name: c.name || undefined,
+      timestamp: Date.now(),
+      matchRules: c.matchRules,
+      supportRules: c.supportRules,
+      samples: c.samples,
+    }));
+    setHistory(prev => [...newSessions, ...prev]);
+    setDdImportCandidates(null);
+    showToast(`Imported ${newSessions.length} session${newSessions.length !== 1 ? 's' : ''}`);
+  };
+
   const escapeHCLString = (str: string) => {
     return str.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/%/g, '%%');
   };
@@ -662,19 +676,15 @@ useEffect(() => {
     }`;
     };
 
-    const rulesList = matchRules
-      .split('\n')
-      .map((l: string) => l.trim())
-      .filter((l: string) => l.length > 0)
-      .map(toHCLBlock)
-      .join(',\n');
-
-    const supportRulesList = supportRules
-      .split('\n')
-      .map((l: string) => l.trim())
-      .filter((l: string) => l.length > 0)
-      .map(toHCLBlock)
-      .join(',\n');
+    const supportRulesList = supportRules.split('\n').map((l: string) => l.trim()).filter((l: string) => l.length > 0).map((line: string) => {
+      const firstSpaceIdx = line.search(/\s/);
+      const name = firstSpaceIdx !== -1 ? line.substring(0, firstSpaceIdx) : 'rule';
+      const pattern = firstSpaceIdx !== -1 ? line.substring(firstSpaceIdx).trim() : line;
+      return `    {
+      name    = "${escapeHCLString(name)}"
+      pattern = "${escapeHCLString(pattern)}"
+    }`;
+    }).join(',\n');
 
     const hcl = `{
   id_prefix   = ""
