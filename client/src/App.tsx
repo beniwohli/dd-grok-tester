@@ -143,7 +143,14 @@ function App() {
   const [toast, setToast] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const ddIntegrationInputRef = useRef<HTMLInputElement>(null);
-  
+
+  // Tracks which destructive action (if any) is waiting for a second click to confirm.
+  const [pendingConfirm, setPendingConfirm] = useState<PendingConfirm | null>(null);
+  // Ref so the auto-cancel timeout can be cleared when a new action is initiated
+  // or when the component unmounts, without the timeout itself being a dependency
+  // of any effect.
+  const confirmTimeoutRef = useRef<number | null>(null);
+
   const [currentSessionId, setCurrentSessionId] = useState<string>(() => {
     return localStorage.getItem('dd-grok-session-id') || generateId();
   });
@@ -180,18 +187,80 @@ function App() {
   };
 
   // Persist current session state
-  useEffect(() => {
+const persistTimeoutRef = useRef<number | null>(null);
+
+useEffect(() => {
+  if (persistTimeoutRef.current) {
+    clearTimeout(persistTimeoutRef.current);
+  }
+
+  persistTimeoutRef.current = window.setTimeout(() => {
     localStorage.setItem('dd-grok-session-id', currentSessionId);
     localStorage.setItem('dd-grok-session-name', sessionName);
     localStorage.setItem('dd-grok-samples-v2', JSON.stringify(samples));
     localStorage.setItem('dd-grok-match-rules', matchRules);
     localStorage.setItem('dd-grok-support-rules', supportRules);
-  }, [currentSessionId, sessionName, samples, matchRules, supportRules]);
+  }, 300); // tweak delay if needed
+
+  return () => {
+    if (persistTimeoutRef.current) {
+      clearTimeout(persistTimeoutRef.current);
+    }
+  };
+}, [currentSessionId, sessionName, samples, matchRules, supportRules]);
 
   // Persist history
   useEffect(() => {
     localStorage.setItem('dd-grok-history', JSON.stringify(history));
   }, [history]);
+
+  // Cancel the pending confirmation timeout on unmount to avoid state updates
+  // on an unmounted component.
+  useEffect(() => {
+    return () => {
+      if (confirmTimeoutRef.current !== null) {
+        clearTimeout(confirmTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  /**
+   * Requests confirmation for a destructive action. On the first call the
+   * action is stored as pending and a 3-second auto-cancel timer is started.
+   * On the second call (while the same action is still pending) the action is
+   * executed immediately. Returns true if the action was executed, false if
+   * this was only the first click (i.e. the caller should not proceed yet).
+   */
+  const requestConfirm = useCallback(
+    (action: PendingConfirm, onConfirmed: () => void): void => {
+      const isSamePending =
+        pendingConfirm !== null &&
+        pendingConfirm.type === action.type &&
+        (action.type !== 'delete-item' ||
+          (pendingConfirm.type === 'delete-item' && pendingConfirm.id === action.id));
+
+      if (isSamePending) {
+        // Second click — execute and reset.
+        if (confirmTimeoutRef.current !== null) {
+          clearTimeout(confirmTimeoutRef.current);
+          confirmTimeoutRef.current = null;
+        }
+        setPendingConfirm(null);
+        onConfirmed();
+      } else {
+        // First click — arm the confirmation and auto-cancel after 3 s.
+        if (confirmTimeoutRef.current !== null) {
+          clearTimeout(confirmTimeoutRef.current);
+        }
+        setPendingConfirm(action);
+        confirmTimeoutRef.current = window.setTimeout(() => {
+          setPendingConfirm(null);
+          confirmTimeoutRef.current = null;
+        }, 3000);
+      }
+    },
+    [pendingConfirm]
+  );
 
   const parseAllSamples = useCallback(async () => {
     const validSamples = samples.filter(s => s.text.trim());
@@ -277,7 +346,7 @@ function App() {
   };
 
   const clearSession = () => {
-    if (window.confirm('Are you sure you want to clear the current session? Unsaved changes will be lost.')) {
+    requestConfirm({ type: 'clear-session' }, () => {
       setSessionName('');
       setMatchRules('');
       setSupportRules('');
@@ -285,7 +354,7 @@ function App() {
       setResults({});
       setCurrentSessionId(generateId());
       showToast('Session cleared');
-    }
+    });
   };
 
   const saveToHistory = () => {
@@ -323,15 +392,17 @@ function App() {
   };
 
   const deleteFromHistory = (id: string) => {
-    setHistory(history.filter(item => item.id !== id));
-    showToast('Session deleted from history');
+    requestConfirm({ type: 'delete-item', id }, () => {
+      setHistory(history.filter(item => item.id !== id));
+      showToast('Session deleted from history');
+    });
   };
 
   const clearHistory = () => {
-    if (window.confirm('Are you sure you want to delete all saved sessions? This cannot be undone.')) {
+    requestConfirm({ type: 'clear-history' }, () => {
       setHistory([]);
       showToast('History cleared');
-    }
+    });
   };
 
   const exportHistory = () => {
@@ -460,6 +531,11 @@ ${supportRulesList}
     });
   };
 
+  // Helpers to check pending state at specific render sites, keeping JSX readable.
+  const isClearSessionPending = pendingConfirm?.type === 'clear-session';
+  const isClearHistoryPending = pendingConfirm?.type === 'clear-history';
+  const pendingDeleteId = pendingConfirm?.type === 'delete-item' ? pendingConfirm.id : null;
+
   return (
     <div className="container">
       <h1>Datadog Grok Tester</h1>
@@ -492,8 +568,13 @@ ${supportRulesList}
             <div className="section-title">
               Rules
               <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <button className="btn btn-outline" onClick={clearSession}>
-                  <Eraser size={16} /> Clear
+                <button
+                  className={`btn ${isClearSessionPending ? 'btn-danger' : 'btn-outline'}`}
+                  onClick={clearSession}
+                  style={isClearSessionPending ? { border: '1px solid var(--error-color)' } : undefined}
+                >
+                  <Eraser size={16} />
+                  {isClearSessionPending ? 'Click again to confirm' : 'Clear'}
                 </button>
                 <button className="btn btn-primary" onClick={saveToHistory}>
                   <Save size={16} /> Save Session
@@ -614,8 +695,13 @@ ${supportRulesList}
                 <button className="btn btn-outline" onClick={() => ddIntegrationInputRef.current?.click()}>
                   <Upload size={16} /> Import Datadog Integrations
                 </button>
-                <button className="btn btn-danger" style={{ border: '1px solid var(--error-color)' }} onClick={clearHistory}>
-                  <Trash2 size={16} /> Clear History
+                <button
+                  className="btn btn-danger"
+                  style={{ border: '1px solid var(--error-color)' }}
+                  onClick={clearHistory}
+                >
+                  <Trash2 size={16} />
+                  {isClearHistoryPending ? 'Click again to confirm' : 'Clear History'}
                 </button>
                 <input 
                   type="file" 
@@ -667,8 +753,15 @@ ${supportRulesList}
                     <button className="btn btn-outline" onClick={() => loadFromHistory(item)}>
                       Load
                     </button>
-                    <button className="btn btn-danger" style={{ border: 'none' }} onClick={() => deleteFromHistory(item.id)}>
-                      <Trash2 size={16} />
+                    <button
+                      className="btn btn-danger"
+                      style={{ border: pendingDeleteId === item.id ? '1px solid var(--error-color)' : 'none' }}
+                      onClick={() => deleteFromHistory(item.id)}
+                    >
+                      {pendingDeleteId === item.id
+                        ? <><Trash2 size={16} /> Confirm?</>
+                        : <Trash2 size={16} />
+                      }
                     </button>
                   </div>
                 </div>
