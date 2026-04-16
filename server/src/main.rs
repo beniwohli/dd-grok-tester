@@ -4,7 +4,6 @@ use axum::{
 };
 use tower_http::cors::{Any, CorsLayer};
 use tower_http::services::ServeDir;
-use tower_http::trace::TraceLayer;
 use std::net::SocketAddr;
 use tracing::{info, Level};
 use tracing_subscriber;
@@ -33,7 +32,6 @@ async fn main() {
     let app = Router::new()
         .nest("/api", api_router)
         .fallback_service(ServeDir::new("./dist"))
-        .layer(TraceLayer::new_for_http())
         .layer(cors);
 
     let port = std::env::var("PORT")
