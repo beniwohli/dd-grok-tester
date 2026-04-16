@@ -2,7 +2,7 @@ use axum::Json;
 use tracing::info;
 
 use crate::models::{ParseRequest, ParseResponse};
-use crate::grok::{GrokEngine, GrokError};
+use crate::grok::GrokEngine;
 use crate::error::AppError;
 
 pub async fn parse_grok_handler(Json(payload): Json<ParseRequest>) -> Result<Json<ParseResponse>, AppError> {

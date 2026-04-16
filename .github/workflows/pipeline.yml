@@ -26,43 +26,22 @@ jobs:
       with:
         node-version: 24
 
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.11'
-
     - name: Install dependencies
       run: |
         npm install
         cd client && npm install
-        python -m pip install --upgrade pip
-        pip install pytest requests
+
+    - name: Run frontend tests
+      run: cd client && npm run test -- --run
+
+    - name: Run backend tests
+      run: cd server && cargo test
 
     - name: Build frontend
       run: cd client && npm run build
 
     - name: Build backend
-      run: |
-        cd server
-        cargo build
-
-    - name: Run backend in background
-      run: |
-        cd server
-        target/debug/server &
-        # Wait for server to be ready
-        for i in {1..30}; do
-          if curl -s http://localhost:3001 > /dev/null; then
-            echo "Server is up!"
-            break
-          fi
-          echo "Waiting for server..."
-          sleep 2
-        done
-
-    - name: Run pytest
-      run: |
-        pytest tests/test_grok_examples.py -vv
+      run: cd server && cargo build
 
   publish:
     needs: test

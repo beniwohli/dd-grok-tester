@@ -19,9 +19,6 @@ pub enum AppError {
         rule_name: String,
         message: String,
     },
-    
-    #[error("Internal grok parsing error")]
-    InternalError,
 }
 
 impl IntoResponse for AppError {
@@ -30,7 +27,6 @@ impl IntoResponse for AppError {
             AppError::MalformedSupportRule(_) => (StatusCode::BAD_REQUEST, self.to_string()),
             AppError::NoMatchRules => (StatusCode::BAD_REQUEST, self.to_string()),
             AppError::CompilationError { .. } => (StatusCode::BAD_REQUEST, self.to_string()),
-            AppError::InternalError => (StatusCode::INTERNAL_SERVER_ERROR, self.to_string()),
         };
 
         let body = Json(json!({

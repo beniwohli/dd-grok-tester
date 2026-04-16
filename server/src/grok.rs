@@ -153,3 +153,124 @@ pub fn vrl_value_to_json(val: Value) -> serde_json::Value {
         _ => serde_json::Value::Null,
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    fn test_parse(rule: &str, sample: &str, expected: serde_json::Value, support: Option<&str>) {
+        let engine = GrokEngine::new(rule, support).expect("Failed to create GrokEngine");
+        let result = engine.parse(sample).expect("Parse error").expect("No match found");
+        let (_, parsed) = result;
+
+        // Filter actual results to only include the keys we expect to see
+        if let serde_json::Value::Object(expected_obj) = expected {
+            let actual_obj = parsed.as_object().expect("Result is not an object");
+            for (key, expected_val) in expected_obj {
+                let actual_val = actual_obj.get(&key).unwrap_or(&serde_json::Value::Null);
+                
+                if key == "date" || key == "date_access" || key == "timestamp" {
+                   // Handle timestamp comparison with a bit of tolerance for date-only parses
+                   let actual_ts = actual_val.as_i64().expect("timestamp is not an integer");
+                   let expected_ts = expected_val.as_i64().expect("expected timestamp is not an integer");
+                   assert!((actual_ts - expected_ts).abs() < 24 * 60 * 60 * 1000, 
+                           "Timestamp mismatch for {}: expected {}, got {}", key, expected_ts, actual_ts);
+                } else {
+                    assert_eq!(actual_val, &expected_val, "Value mismatch for key '{}'", key);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn test_classic_unstructured_log() {
+        test_parse(
+            "MyParsingRule %{word:user} connected on %{date(\"MM/dd/yyyy\"):date}",
+            "john connected on 11/08/2017",
+            json!({"user": "john", "date": 1510099200000i64}),
+            None
+        );
+    }
+
+    #[test]
+    fn test_parsing_dates() {
+        // HH:mm:ss without a date defaults to today. We just check it parses to something sensible.
+        let engine = GrokEngine::new("date_rule %{date(\"HH:mm:ss\"):date}", None).unwrap();
+        let result = engine.parse("14:20:15").unwrap().unwrap();
+        assert!(result.1.as_object().unwrap().contains_key("date"));
+    }
+
+    #[test]
+    fn test_alternating_pattern() {
+        test_parse(
+            "MyParsingRule (%{integer:user.id}|%{word:user.firstname}) connected on %{date(\"MM/dd/yyyy\"):connect_date}",
+            "john connected on 11/08/2017",
+            json!({
+                "user": {"firstname": "john"},
+                "connect_date": 1510099200000i64
+            }),
+            None
+        );
+    }
+
+    #[test]
+    fn test_optional_attribute() {
+        test_parse(
+            "MyParsingRule %{word:user.firstname} (%{integer:user.id} )?connected on %{date(\"MM/dd/yyyy\"):connect_date}",
+            "john 1234 connected on 11/08/2017",
+            json!({
+                "user": {"firstname": "john", "id": 1234},
+                "connect_date": 1510099200000i64
+            }),
+            None
+        );
+    }
+
+    #[test]
+    fn test_regex() {
+        test_parse(
+            "MyParsingRule %{regex(\"[a-z]*\"):user.firstname}_%{regex(\"[a-zA-Z0-9]*\"):user.id} .*",
+            "john_1a2b3c4 connected on 11/08/2017",
+            json!({
+                "user": {"firstname": "john", "id": "1a2b3c4"}
+            }),
+            None
+        );
+    }
+
+    #[test]
+    fn test_discard_data() {
+        test_parse(
+            "MyParsingRule Usage\\:\\s+%{number:usage}%{data:ignore}",
+            "Usage: 24.3%",
+            json!({"usage": 24.3, "ignore": "%"}),
+            None
+        );
+    }
+
+    #[test]
+    fn test_cross_referencing_match_rules() {
+        test_parse(
+            "access.common %{_client_ip} %{_ident} %{_auth} \\[%{_date_access}\\] \"(?>%{_method} |)%{_url}(?> %{_version}|)\" %{_status_code} (?>%{_bytes_written}|-)\naccess.combined %{access.common} \"%{_referer}\" \"%{_user_agent}\"",
+            "192.0.2.1 - Ultan [07/Mar/2004:16:43:54 -0800] \"GET /unencrypted_password_list?foo=bar HTTP/1.1\" 404 9001 \"http://passwords.hackz0r\" \"Mozilla/4.08 [en] (Win95)\"",
+            json!({
+                "network": { "client": { "ip": "192.0.2.1" } },
+                "http": {
+                    "auth": "Ultan",
+                    "ident": "-",
+                    "status_code": 404,
+                    "method": "GET",
+                    "url": "/unencrypted_password_list?foo=bar",
+                    "version": "1.1",
+                    "response": { "bytes": 9001 },
+                    "referer": "http://passwords.hackz0r",
+                    "useragent": "Mozilla/4.08 [en] (Win95)"
+                },
+                "date_access": 1078706634000i64
+            }),
+            Some("_client_ip %{ipOrHost:network.client.ip}\n_ident %{notSpace:http.ident}\n_auth %{notSpace:http.auth}\n_date_access %{date(\"dd/MMM/yyyy:HH:mm:ss Z\"):date_access}\n_method %{word:http.method}\n_url %{notSpace:http.url}\n_version %{word}/%{regex(\"\\\\d+\\\\.\\\\d+\"):http.version}\n_status_code %{integer:http.status_code}\n_bytes_written %{integer:http.response.bytes}\n_referer %{notSpace:http.referer}\n_user_agent %{data:http.useragent}")
+        );
+    }
+}
+
