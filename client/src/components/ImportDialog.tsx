@@ -56,7 +56,7 @@ export const ImportDialog = ({ candidates, onConfirm, onCancel }: ImportDialogPr
 
   return (
     <div className="dialog-backdrop" onClick={onCancel}>
-      <div className="dialog" onClick={e => e.stopPropagation()}>
+      <div className="dialog" onClick={e => e.stopPropagation()} role="dialog">
         <div className="dialog-header">
           <span className="dialog-title">Import Datadog integrations</span>
           <span className="dialog-subtitle">{candidates.length} grok processors found</span>
