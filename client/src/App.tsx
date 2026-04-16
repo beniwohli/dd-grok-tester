@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
-import { Plus, Trash2, AlertCircle, CheckCircle2, Tag, Save, History as HistoryIcon, Play, Eraser, CheckCircle, Download, Upload, Code, BookOpen } from 'lucide-react';
+import { CheckCircle, History as HistoryIcon, Play, BookOpen } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import './App.css';
@@ -8,9 +8,9 @@ import './App.css';
 import docsContent from './Docs.md?raw';
 import type { Sample, ParseResult, HistoryItem, DDImportCandidate } from './types';
 import { generateId, parseRuleLine } from './utils';
-import { JsonFormatter } from './components/JsonFormatter';
 import { ImportDialog } from './components/ImportDialog';
-import { GrokEditor } from './components/GrokEditor';
+import { TestTab } from './components/TestTab';
+import { HistoryTab } from './components/HistoryTab';
 
 // Discriminated union describing which destructive action is awaiting confirmation.
 type PendingConfirm =
@@ -447,214 +447,40 @@ ${supportRulesList}
       </div>
 
       {currentTab === 'test' && (
-        <>
-          <div className="card">
-            <div className="section-title">
-              Rules
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <button
-                  className={`btn ${isClearSessionPending ? 'btn-danger' : 'btn-outline'}`}
-                  onClick={clearSession}
-                  style={isClearSessionPending ? { border: '1px solid var(--error-color)' } : undefined}
-                >
-                  <Eraser size={16} />
-                  {isClearSessionPending ? 'Click again to confirm' : 'Clear'}
-                </button>
-                <button className="btn btn-primary" onClick={saveToHistory}>
-                  <Save size={16} /> Save Session
-                </button>
-              </div>
-            </div>
-            <div style={{ display: 'grid', gap: '1rem' }}>
-              <div>
-                <label className="label-text">Session Name (Optional)</label>
-                <input 
-                  type="text" 
-                  value={sessionName} 
-                  onChange={(e) => setSessionName(e.target.value)}
-                  placeholder="e.g. KyotoTycoon"
-                  style={{ marginBottom: '0.5rem' }}
-                />
-              </div>
-              <div>
-                <label className="label-text">Match Rules (RULE_NAME PATTERN, one per line)</label>
-                <GrokEditor 
-                  value={matchRules} 
-                  onChange={setMatchRules}
-                  placeholder="e.g. common %{IP:client_ip} ..."
-                />
-              </div>
-              <div>
-                <label className="label-text">Support Rules (Optional, e.g. RULE_NAME PATTERN)</label>
-                <GrokEditor 
-                  value={supportRules} 
-                  onChange={setSupportRules}
-                  placeholder="e.g. MY_RULE %{DIGIT}"
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="card">
-            <div className="section-title">
-              Log Samples
-              <button className="btn btn-outline" onClick={addSample}>
-                <Plus size={16} /> Add Sample
-              </button>
-            </div>
-            
-            {samples.map((sample) => (
-              <div key={sample.id} className="sample-row">
-                <div className="sample-header">
-                  <input 
-                    type="text" 
-                    value={sample.text} 
-                    onChange={(e) => updateSample(sample.id, e.target.value)}
-                    placeholder="Enter log line..."
-                  />
-                  {samples.length > 1 && (
-                    <button className="btn btn-danger" onClick={() => removeSample(sample.id)}>
-                      <Trash2 size={16} />
-                    </button>
-                  )}
-                </div>
-
-                {results[sample.id] && sample.text.trim() && (
-                  <div className="result-container" style={{ opacity: results[sample.id].isLoading ? 0.6 : 1 }}>
-                    {results[sample.id].isLoading && (
-                      <div className="loading-indicator">Parsing...</div>
-                    )}
-                    
-                    {results[sample.id].error ? (
-                      <div className="result-error">
-                        <AlertCircle size={14} style={{ marginRight: '4px' }} />
-                        <pre style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{results[sample.id].error}</pre>
-                      </div>
-                    ) : results[sample.id].parsed ? (
-                      <div>
-                        <div style={{ color: '#4ade80', marginBottom: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            <CheckCircle2 size={14} /> Parsed Successfully
-                          </div>
-                          {results[sample.id].matched_rule && (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', backgroundColor: '#334155', padding: '2px 8px', borderRadius: '4px', fontSize: '11px', color: '#cbd5e1' }}>
-                              <Tag size={10} /> {results[sample.id].matched_rule}
-                            </div>
-                          )}
-                        </div>
-                        <pre style={{ margin: 0 }}>
-                          <JsonFormatter data={results[sample.id].parsed} />
-                        </pre>
-                      </div>
-                    ) : (
-                      <div className="result-error">
-                        <AlertCircle size={14} style={{ marginRight: '4px' }} />
-                        No match
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-
-          <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-            <button className="btn btn-outline" onClick={exportAsTerraform} style={{ width: '100%', justifyContent: 'center', padding: '1rem' }}>
-              <Code size={18} /> Export as Terraform (.tfvars)
-            </button>
-          </div>
-        </>
+        <TestTab
+          isClearSessionPending={isClearSessionPending}
+          clearSession={clearSession}
+          saveToHistory={saveToHistory}
+          sessionName={sessionName}
+          setSessionName={setSessionName}
+          matchRules={matchRules}
+          setMatchRules={setMatchRules}
+          supportRules={supportRules}
+          setSupportRules={setSupportRules}
+          samples={samples}
+          addSample={addSample}
+          updateSample={updateSample}
+          removeSample={removeSample}
+          results={results}
+          exportAsTerraform={exportAsTerraform}
+        />
       )}
 
       {currentTab === 'history' && (
-        <>
-          <div className="card">
-            <div className="section-title">
-              Actions
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <button className="btn btn-outline" onClick={exportHistory}>
-                  <Download size={16} /> Export JSON
-                </button>
-                <button className="btn btn-outline" onClick={() => fileInputRef.current?.click()}>
-                  <Upload size={16} /> Import JSON
-                </button>
-                <button className="btn btn-outline" onClick={() => ddIntegrationInputRef.current?.click()}>
-                  <Upload size={16} /> Import Datadog Integrations
-                </button>
-                <button
-                  className="btn btn-danger"
-                  style={{ border: '1px solid var(--error-color)' }}
-                  onClick={clearHistory}
-                >
-                  <Trash2 size={16} />
-                  {isClearHistoryPending ? 'Click again to confirm' : 'Clear History'}
-                </button>
-                <input 
-                  type="file" 
-                  ref={fileInputRef} 
-                  style={{ display: 'none' }} 
-                  accept=".json" 
-                  onChange={importHistory}
-                />
-                <input 
-                  type="file" 
-                  ref={ddIntegrationInputRef} 
-                  style={{ display: 'none' }} 
-                  accept=".json" 
-                  onChange={importDatadogIntegrations}
-                />
-              </div>
-            </div>
-          </div>
-          <div className="card" style={{ padding: 0 }}>
-            {history.length === 0 ? (
-              <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-                No saved sessions yet.
-              </div>
-            ) : (
-              history.map((item) => (
-                <div key={item.id} className="history-item">
-                  <div className="history-info">
-                    <div className="history-date">
-                      {new Date(item.timestamp).toLocaleString()}
-                      {item.id === currentSessionId && (
-                        <span style={{ marginLeft: '8px', backgroundColor: '#dcfce7', color: '#166534', padding: '2px 6px', borderRadius: '4px', fontSize: '10px', fontWeight: 'bold' }}>ACTIVE</span>
-                      )}
-                    </div>
-                    <div className="history-summary">
-                      {item.name ? (
-                        <strong style={{ display: 'block', marginBottom: '4px', fontSize: '14px', color: 'var(--text-color)' }}>
-                          {item.name}
-                        </strong>
-                      ) : null}
-                      <div style={{ color: 'var(--text-muted)' }}>
-                        {item.matchRules.split('\n')[0] || 'No rules'} 
-                        {item.matchRules.split('\n').length > 1 ? ' ...' : ''}
-                        <span style={{ margin: '0 8px', color: '#e2e8f0' }}>|</span>
-                        {item.samples.length} sample(s)
-                      </div>
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <button className="btn btn-outline" onClick={() => loadFromHistory(item)}>
-                      Load
-                    </button>
-                    <button
-                      className="btn btn-danger"
-                      style={{ border: pendingDeleteId === item.id ? '1px solid var(--error-color)' : 'none' }}
-                      onClick={() => deleteFromHistory(item.id)}
-                    >
-                      {pendingDeleteId === item.id
-                        ? <><Trash2 size={16} /> Confirm?</>
-                        : <Trash2 size={16} />
-                      }
-                    </button>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </>
+        <HistoryTab
+          history={history}
+          exportHistory={exportHistory}
+          fileInputRef={fileInputRef}
+          importHistory={importHistory}
+          ddIntegrationInputRef={ddIntegrationInputRef}
+          importDatadogIntegrations={importDatadogIntegrations}
+          clearHistory={clearHistory}
+          isClearHistoryPending={isClearHistoryPending}
+          currentSessionId={currentSessionId}
+          loadFromHistory={loadFromHistory}
+          pendingDeleteId={pendingDeleteId}
+          deleteFromHistory={deleteFromHistory}
+        />
       )}
 
       {currentTab === 'docs' && (
