@@ -11,5 +11,4 @@ pub struct ParseRequest {
 pub struct ParseResponse {
     pub parsed: Option<serde_json::Value>,
     pub matched_rule: Option<String>,
-    pub error: Option<String>,
 }

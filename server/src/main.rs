@@ -12,6 +12,7 @@ use tracing_subscriber;
 mod models;
 mod handlers;
 mod grok;
+mod error;
 
 #[tokio::main]
 async fn main() {
