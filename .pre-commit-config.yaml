@@ -1,0 +1,23 @@
+repos:
+  - repo: local
+    hooks:
+      - id: cargo-fmt
+        name: Cargo Format
+        entry: cargo fmt --manifest-path server/Cargo.toml -- --check
+        language: system
+        files: \.rs$
+        pass_filenames: false
+
+      - id: cargo-clippy
+        name: Cargo Clippy
+        entry: cargo clippy --manifest-path server/Cargo.toml --all-targets -- -D warnings
+        language: system
+        files: \.rs$
+        pass_filenames: false
+
+      - id: client-eslint
+        name: Client ESLint
+        entry: pnpm --dir client lint
+        language: system
+        files: ^client/src/.*\.(ts|tsx|js|jsx)$
+        pass_filenames: false
