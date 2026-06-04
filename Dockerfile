@@ -1,12 +1,13 @@
 # --- Frontend Build Stage ---
 FROM --platform=$BUILDPLATFORM node:20-slim AS frontend-builder
 WORKDIR /app/client
+RUN npm install -g pnpm
 # Cache dependencies
-COPY client/package*.json ./
-RUN npm install
+COPY client/package.json ./
+RUN pnpm install
 # Build source
 COPY client/ ./
-RUN npm run build
+RUN pnpm run build
 
 # --- Backend Build Stage ---
 FROM rust:1.94-slim-bookworm AS backend-builder

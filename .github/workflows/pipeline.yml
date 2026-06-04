@@ -26,19 +26,22 @@ jobs:
       with:
         node-version: 24
 
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v4
+      with:
+        version: 9
+
     - name: Install dependencies
-      run: |
-        npm install
-        cd client && npm install
+      run: cd client && pnpm install
 
     - name: Run frontend tests
-      run: cd client && npm run test -- --run
+      run: cd client && pnpm run test -- --run
 
     - name: Run backend tests
       run: cd server && cargo test
 
     - name: Build frontend
-      run: cd client && npm run build
+      run: cd client && pnpm run build
 
     - name: Build backend
       run: cd server && cargo build

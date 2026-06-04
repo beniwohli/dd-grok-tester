@@ -32,14 +32,14 @@ Access the application at `http://localhost:3001`.
 
 If you prefer to build the image locally:
 
-1. Install dependencies for all components:
+1. Install dependencies for the frontend:
    ```bash
-   npm run install:all
+   cd client && pnpm install
    ```
 
 2. Start both the frontend and backend concurrently:
    ```bash
-   npm run dev
+   pnpm run dev:all
    ```
 
 The frontend will be available at `http://localhost:5173`, proxying API requests to the Rust server at `http://localhost:3001`.
