@@ -5,8 +5,10 @@ use crate::models::{ParseRequest, ParseResponse};
 use crate::grok::GrokEngine;
 use crate::error::AppError;
 
-pub async fn parse_grok_handler(Json(payload): Json<ParseRequest>) -> Result<Json<ParseResponse>, AppError> {
-    info!("Request received: Parsing log sample (length: {})", payload.sample.len());
+pub async fn parse_grok_handler(
+    Json(payload): Json<ParseRequest>,
+) -> Result<Json<ParseResponse>, AppError> {
+    info!("Parsing log sample (length: {})", payload.sample.len());
 
     let engine = GrokEngine::new(&payload.match_rules, payload.support_rules.as_deref())?;
 

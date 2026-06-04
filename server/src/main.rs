@@ -2,16 +2,15 @@ use axum::{
     routing::post,
     Router,
 };
-use tower_http::cors::{Any, CorsLayer};
-use tower_http::services::ServeDir;
-use std::net::SocketAddr;
+use tokio::net::TcpListener;
+use tower_http::cors::CorsLayer;
+use tower_http::services::{ServeDir, ServeFile};
 use tracing::{info, Level};
-use tracing_subscriber;
 
-mod models;
-mod handlers;
-mod grok;
 mod error;
+mod grok;
+mod handlers;
+mod models;
 
 #[tokio::main]
 async fn main() {
@@ -19,29 +18,26 @@ async fn main() {
         .with_max_level(Level::INFO)
         .init();
 
-    info!("Starting Datadog Grok Tester server...");
-
-    let cors = CorsLayer::new()
-        .allow_origin(Any)
-        .allow_methods(Any)
-        .allow_headers(Any);
-
-    let api_router = Router::new()
-        .route("/parse", post(handlers::parse_grok_handler));
-
-    let app = Router::new()
-        .nest("/api", api_router)
-        .fallback_service(ServeDir::new("./dist"))
-        .layer(cors);
-
     let port = std::env::var("PORT")
         .unwrap_or_else(|_| "3001".to_string())
         .parse::<u16>()
         .expect("PORT must be a number");
 
-    let addr = SocketAddr::from(([0, 0, 0, 0], port));
-    info!("Server listening on http://{}", addr);
+    // Setup CORS
+    let cors = CorsLayer::permissive();
 
-    let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
-    axum::serve(listener, app).await.unwrap();
+    // Serve static files with fallback to index.html
+    let serve_dir = ServeDir::new("dist").fallback(ServeFile::new("dist/index.html"));
+
+    let app = Router::new()
+        .route("/api/parse", post(handlers::parse_grok_handler))
+        .fallback_service(serve_dir)
+        .layer(cors);
+
+    let addr = format!("0.0.0.0:{}", port);
+    let listener = TcpListener::bind(&addr).await.expect("Failed to bind to port");
+    
+    info!("Datadog Grok Tester (Axum) listening on http://{}", addr);
+
+    axum::serve(listener, app).await.expect("Server failed");
 }
