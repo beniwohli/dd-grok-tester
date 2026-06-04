@@ -7,15 +7,17 @@ import { setupServer } from 'msw/node';
 const server = setupServer(
   http.post('/api/parse', async ({ request }) => {
     const body = await request.json() as any;
-    if (body.sample === 'match') {
-      return HttpResponse.json({
-        parsed: { key: 'value' },
-        matched_rule: 'rule1',
-      });
-    }
-    return HttpResponse.json({
-      error: 'No match',
+    const samples = body.samples || [];
+    const results = samples.map((sample: string) => {
+      if (sample === 'match') {
+        return {
+          parsed: { key: 'value' },
+          matched_rule: 'rule1',
+        };
+      }
+      return {};
     });
+    return HttpResponse.json({ results });
   })
 );
 
