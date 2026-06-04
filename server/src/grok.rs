@@ -96,7 +96,6 @@ impl GrokEngine {
 
     pub fn parse(&self, sample: &str) -> Result<Option<(String, serde_json::Value)>, GrokError> {
         for (name, program) in &self.compiled_patterns {
-
             let mut event: BTreeMap<_, _> = Default::default();
             event.insert("message".into(), Value::from(sample.to_string()));
 
