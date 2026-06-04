@@ -12,8 +12,7 @@ pub enum GrokError {
 }
 
 pub struct GrokEngine {
-    named_patterns: Vec<(String, String)>,
-    aliases_json: String,
+    compiled_patterns: Vec<(String, vrl::compiler::Program)>,
 }
 
 impl GrokEngine {
@@ -54,18 +53,12 @@ impl GrokEngine {
 
         let aliases_json = serde_json::to_string(&support_map).unwrap();
 
-        Ok(Self {
-            named_patterns,
-            aliases_json,
-        })
-    }
-
-    pub fn parse(&self, sample: &str) -> Result<Option<(String, serde_json::Value)>, GrokError> {
-        for (name, pattern) in &self.named_patterns {
+        let mut compiled_patterns = Vec::new();
+        for (name, pattern) in named_patterns {
             let vrl_program = format!(
                 "result, err = parse_groks(.message, [{:?}], {})\n\
                  if is_null(err) {{ . = object!(result) }}\n",
-                pattern, self.aliases_json
+                pattern, aliases_json
             );
 
             let compiled = compile(&vrl_program, &stdlib::all());
@@ -92,8 +85,17 @@ impl GrokEngine {
                         message: error_msg,
                     });
                 }
-                Ok(p) => p,
+                Ok(p) => p.program,
             };
+
+            compiled_patterns.push((name, prog));
+        }
+
+        Ok(Self { compiled_patterns })
+    }
+
+    pub fn parse(&self, sample: &str) -> Result<Option<(String, serde_json::Value)>, GrokError> {
+        for (name, program) in &self.compiled_patterns {
 
             let mut event: BTreeMap<_, _> = Default::default();
             event.insert("message".into(), Value::from(sample.to_string()));
@@ -107,7 +109,7 @@ impl GrokEngine {
             let mut state = RuntimeState::default();
             let mut ctx = Context::new(&mut target, &mut state, &TimeZone::Local);
 
-            match prog.program.resolve(&mut ctx) {
+            match program.resolve(&mut ctx) {
                 Ok(_) => {
                     if let Value::Object(ref obj) = target.value {
                         let only_original_message = obj.len() == 1
