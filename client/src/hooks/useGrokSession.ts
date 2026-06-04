@@ -115,7 +115,7 @@ export const useGrokSession = () => {
     [pendingConfirm]
   );
 
-  const parseAllSamples = useCallback(async () => {
+    const parseAllSamples = useCallback(async () => {
     const validSamples = samples.filter(s => s.text.trim());
     if (validSamples.length === 0 || !matchRules.trim()) {
       return;
@@ -123,44 +123,44 @@ export const useGrokSession = () => {
 
     setResults(prev => {
       const next = { ...prev };
-      samples.forEach(s => {
-        if (s.text.trim()) {
-          next[s.id] = { ...next[s.id], isLoading: true };
-        }
+      validSamples.forEach(s => {
+        next[s.id] = { ...next[s.id], isLoading: true };
       });
       return next;
     });
 
-    const promises = samples.map(async (sample) => {
-      if (!sample.text.trim()) return;
+    try {
+      const response = await axios.post('/api/parse', {
+        samples: validSamples.map(s => s.text),
+        match_rules: matchRules,
+        support_rules: supportRules || null
+      });
       
-      try {
-        const response = await axios.post('/api/parse', {
-          sample: sample.text,
-          match_rules: matchRules,
-          support_rules: supportRules || null
-        });
-        
-        setResults(prev => ({
-          ...prev,
-          [sample.id]: {
+      const resultsData = response.data.results;
+      
+      setResults(prev => {
+        const next = { ...prev };
+        validSamples.forEach((sample, index) => {
+          next[sample.id] = {
             isLoading: false,
-            parsed: response.data.parsed,
-            matched_rule: response.data.matched_rule,
-          }
-        }));
-      } catch (err: any) {
-        setResults(prev => ({
-          ...prev,
-          [sample.id]: {
+            parsed: resultsData[index]?.parsed,
+            matched_rule: resultsData[index]?.matched_rule,
+          };
+        });
+        return next;
+      });
+    } catch (err: any) {
+      setResults(prev => {
+        const next = { ...prev };
+        validSamples.forEach(sample => {
+          next[sample.id] = {
             isLoading: false,
             error: err.response?.data?.error || err.message
-          }
-        }));
-      }
-    });
-
-    await Promise.all(promises);
+          };
+        });
+        return next;
+      });
+    }
   }, [samples, matchRules, supportRules]);
 
   useEffect(() => {
