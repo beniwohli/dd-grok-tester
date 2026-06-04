@@ -4,7 +4,7 @@ export interface Sample {
 }
 
 export interface ParseResult {
-  parsed?: any;
+  parsed?: unknown;
   matched_rule?: string;
   error?: string;
   isLoading: boolean;

@@ -149,13 +149,15 @@ export const useGrokSession = () => {
         });
         return next;
       });
-    } catch (err: any) {
+    } catch (err) {
       setResults(prev => {
         const next = { ...prev };
         validSamples.forEach(sample => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const e = err as any;
           next[sample.id] = {
             isLoading: false,
-            error: err.response?.data?.error || err.message
+            error: e.response?.data?.error || e.message || 'Error parsing sample'
           };
         });
         return next;
@@ -284,7 +286,7 @@ export const useGrokSession = () => {
             showToast('Invalid history file format');
           }
         }
-      } catch (err) {
+      } catch {
         showToast('Error parsing history file');
       }
     };
@@ -302,9 +304,11 @@ export const useGrokSession = () => {
         const candidates: DDImportCandidate[] = [];
 
         if (Array.isArray(integrations)) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           integrations.forEach((integration: any) => {
             const pipeline = integration.pipeline;
             if (pipeline && Array.isArray(pipeline.processors)) {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               pipeline.processors.forEach((processor: any, processorIdx: number) => {
                 if (processor.type === 'grok-parser' && processor.grok) {
                   candidates.push({
@@ -328,7 +332,7 @@ export const useGrokSession = () => {
             showToast('No grok processors found in file');
           }
         }
-      } catch (err) {
+      } catch {
         showToast('Error parsing integrations file');
       }
     };

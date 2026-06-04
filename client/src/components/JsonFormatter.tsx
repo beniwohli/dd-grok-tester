@@ -1,4 +1,4 @@
-export const JsonFormatter = ({ data }: { data: any }) => {
+export const JsonFormatter = ({ data }: { data: unknown }) => {
   if (typeof data === 'number' && data > 1000000000000 && data < 2000000000000) {
     // Likely a timestamp in ms (between 2001 and 2033)
     const iso = new Date(data).toISOString();
@@ -35,7 +35,7 @@ export const JsonFormatter = ({ data }: { data: any }) => {
         <div style={{ paddingLeft: '1.5rem' }}>
           {keys.map((key, i) => (
             <div key={key}>
-              <span style={{ color: '#818cf8' }}>"{key}"</span>: <JsonFormatter data={data[key]} />
+              <span style={{ color: '#818cf8' }}>"{key}"</span>: <JsonFormatter data={(data as Record<string, unknown>)[key]} />
               {i < keys.length - 1 ? ',' : ''}
             </div>
           ))}

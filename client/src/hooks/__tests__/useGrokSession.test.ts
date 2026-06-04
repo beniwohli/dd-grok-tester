@@ -6,7 +6,7 @@ import { setupServer } from 'msw/node';
 
 const server = setupServer(
   http.post('/api/parse', async ({ request }) => {
-    const body = await request.json() as any;
+    const body = await request.json() as { samples?: string[] };
     const samples = body.samples || [];
     const results = samples.map((sample: string) => {
       if (sample === 'match') {

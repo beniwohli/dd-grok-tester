@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Editor from 'react-simple-code-editor';
-// @ts-ignore
-import { highlight, languages } from 'prismjs';
+import { highlight } from 'prismjs';
 import 'prismjs/components/prism-clike';
 import 'prismjs/themes/prism.css';
 
 // Ensure we get the actual component if it's wrapped in a default object (common in some build environments)
-const CodeEditor = (Editor as any).default || Editor;
+const CodeEditor = (Editor as unknown as { default: typeof Editor }).default || Editor;
 
 // Datadog-native matchers (used in the MATCHER position of %{MATCHER:capture:filter})
 const DD_MATCHERS = new Set([
@@ -31,7 +30,7 @@ const grokLanguage = {
     alias: 'function'
   },
   'grok-pattern-block': {
-    pattern: /%\{[^\}]+\}/,
+    pattern: /%\{[^}]+\}/,
     inside: {
       'grok-braces': /%\{|\}/,
       'grok-content': {
@@ -61,23 +60,22 @@ const grokLanguage = {
 // grok-pattern / grok-filter token whose base name is a Datadog built-in
 // with an extra "dd-builtin" class so we can colour it distinctly.
 if (typeof window !== 'undefined') {
-  // @ts-ignore
-  const Prism = window.Prism ?? (await import('prismjs'));
+  if (!window.Prism) {
+    await import('prismjs');
+  }
 
   // We attach the hook directly on the prismjs singleton that highlight() uses.
   // Using 'after-tokenize' lets us inspect the final flat token array.
-  // @ts-ignore
-  (highlight as any).__ddHookInstalled ||
-    (() => {
-      // noop — hook is registered globally below via the imported `highlight` module's Prism reference.
-    })();
+  const h = highlight as unknown as { __ddHookInstalled?: boolean };
+  if (!h.__ddHookInstalled) {
+      h.__ddHookInstalled = true;
+  }
 }
 
 // Colour DD built-ins by post-processing highlighted HTML.
 // Simpler than Prism hooks: wrap the highlighter to swap classes after the fact.
 const highlightGrok = (code: string): string => {
   // Run standard Prism highlight.
-  // @ts-ignore
   let html: string = highlight(code, grokLanguage, 'grok');
 
   // Replace grok-pattern tokens that are Datadog built-ins.
@@ -240,7 +238,7 @@ export const GrokEditor = ({ value, onChange, placeholder }: { value: string, on
     ['fontFamily','fontSize','fontWeight','lineHeight','paddingTop','paddingRight',
      'paddingBottom','paddingLeft','borderTopWidth','borderRightWidth','borderBottomWidth',
      'borderLeftWidth','boxSizing','whiteSpace','wordWrap','overflowWrap','width']
-      .forEach(p => { (mirror.style as any)[p] = (cs as any)[p]; });
+      .forEach(p => { (mirror.style as unknown as Record<string, string>)[p] = (cs as unknown as Record<string, string>)[p]; });
     mirror.style.position   = 'absolute';
     mirror.style.visibility = 'hidden';
     mirror.style.top        = '-9999px';

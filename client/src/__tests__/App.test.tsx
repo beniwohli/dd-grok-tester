@@ -4,7 +4,7 @@ import App from '../App';
 
 // Mock Prism and components that use it if necessary
 vi.mock('../components/GrokEditor', () => ({
-  GrokEditor: ({ value, onChange, placeholder }: any) => (
+  GrokEditor: ({ value, onChange, placeholder }: { value: string, onChange: (v: string) => void, placeholder: string }) => (
     <textarea 
       data-testid="grok-editor"
       value={value}
