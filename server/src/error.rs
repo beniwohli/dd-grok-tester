@@ -9,15 +9,12 @@ use thiserror::Error;
 pub enum AppError {
     #[error("Malformed support rule (expected \"NAME PATTERN\"): {0}")]
     MalformedSupportRule(String),
-    
+
     #[error("No match rules provided")]
     NoMatchRules,
-    
+
     #[error("Rule '{rule_name}': {message}")]
-    CompilationError {
-        rule_name: String,
-        message: String,
-    },
+    CompilationError { rule_name: String, message: String },
 }
 
 // Convert from GrokError into AppError
@@ -39,9 +36,10 @@ impl IntoResponse for AppError {
         let (status, error_message) = match &self {
             AppError::MalformedSupportRule(msg) => (StatusCode::BAD_REQUEST, msg.clone()),
             AppError::NoMatchRules => (StatusCode::BAD_REQUEST, self.to_string()),
-            AppError::CompilationError { rule_name, message } => {
-                (StatusCode::BAD_REQUEST, format!("Rule '{}': {}", rule_name, message))
-            }
+            AppError::CompilationError { rule_name, message } => (
+                StatusCode::BAD_REQUEST,
+                format!("Rule '{}': {}", rule_name, message),
+            ),
         };
 
         let body = serde_json::json!({

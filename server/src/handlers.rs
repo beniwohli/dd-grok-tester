@@ -1,9 +1,9 @@
 use axum::Json;
 use tracing::info;
 
-use crate::models::{ParseRequest, ParseResponse, BatchParseResponse};
-use crate::grok::GrokEngine;
 use crate::error::AppError;
+use crate::grok::GrokEngine;
+use crate::models::{BatchParseResponse, ParseRequest, ParseResponse};
 
 pub async fn parse_grok_handler(
     Json(payload): Json<ParseRequest>,
@@ -49,7 +49,8 @@ mod tests {
                 "jane connected on 12/09/2018".to_string(),
                 "invalid sample".to_string(),
             ],
-            match_rules: "MyRule %{word:user} connected on %{date(\"MM/dd/yyyy\"):date}".to_string(),
+            match_rules: "MyRule %{word:user} connected on %{date(\"MM/dd/yyyy\"):date}"
+                .to_string(),
             support_rules: None,
         };
 

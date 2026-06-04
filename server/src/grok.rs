@@ -32,7 +32,11 @@ impl GrokEngine {
             }
         }
 
-        for line in match_rules.lines().map(|l| l.trim()).filter(|l| !l.is_empty()) {
+        for line in match_rules
+            .lines()
+            .map(|l| l.trim())
+            .filter(|l| !l.is_empty())
+        {
             let parts: Vec<&str> = line.splitn(2, |c: char| c.is_whitespace()).collect();
             if parts.len() == 2 {
                 let name = parts[0].to_string();
@@ -61,24 +65,27 @@ impl GrokEngine {
             let vrl_program = format!(
                 "result, err = parse_groks(.message, [{:?}], {})\n\
                  if is_null(err) {{ . = object!(result) }}\n",
-                pattern,
-                self.aliases_json
+                pattern, self.aliases_json
             );
 
             let compiled = compile(&vrl_program, &stdlib::all());
 
             let prog = match compiled {
                 Err(diag) => {
-                    let error_msg = diag.iter().map(|d| {
-                        let msg = &d.message;
-                        if let Some(pos) = msg.find("]: ") {
-                            msg[pos + 3..].to_string()
-                        } else if let Some(pos) = msg.find("error: ") {
-                            msg[pos + 7..].to_string()
-                        } else {
-                            msg.clone()
-                        }
-                    }).collect::<Vec<_>>().join("\n");
+                    let error_msg = diag
+                        .iter()
+                        .map(|d| {
+                            let msg = &d.message;
+                            if let Some(pos) = msg.find("]: ") {
+                                msg[pos + 3..].to_string()
+                            } else if let Some(pos) = msg.find("error: ") {
+                                msg[pos + 7..].to_string()
+                            } else {
+                                msg.clone()
+                            }
+                        })
+                        .collect::<Vec<_>>()
+                        .join("\n");
 
                     return Err(GrokError::CompilationError {
                         rule_name: name.clone(),
@@ -104,9 +111,9 @@ impl GrokEngine {
                 Ok(_) => {
                     if let Value::Object(ref obj) = target.value {
                         let only_original_message = obj.len() == 1
-                            && obj.get("message").map_or(false, |v| {
-                                matches!(v, Value::Bytes(b) if b.as_ref() == sample.as_bytes())
-                            });
+                            && obj.get("message").is_some_and(
+                                |v| matches!(v, Value::Bytes(b) if b.as_ref() == sample.as_bytes()),
+                            );
 
                         if !only_original_message {
                             return Ok(Some((name.clone(), vrl_value_to_json(target.value))));
@@ -118,7 +125,7 @@ impl GrokEngine {
                 }
             }
         }
-        
+
         Ok(None)
     }
 }
@@ -146,9 +153,7 @@ pub fn vrl_value_to_json(val: Value) -> serde_json::Value {
             }
         }
         Value::Bytes(b) => serde_json::Value::String(String::from_utf8_lossy(&b).to_string()),
-        Value::Timestamp(t) => {
-            serde_json::Value::Number(t.timestamp_millis().into())
-        }
+        Value::Timestamp(t) => serde_json::Value::Number(t.timestamp_millis().into()),
         Value::Null => serde_json::Value::Null,
         _ => serde_json::Value::Null,
     }
@@ -161,7 +166,10 @@ mod tests {
 
     fn test_parse(rule: &str, sample: &str, expected: serde_json::Value, support: Option<&str>) {
         let engine = GrokEngine::new(rule, support).expect("Failed to create GrokEngine");
-        let result = engine.parse(sample).expect("Parse error").expect("No match found");
+        let result = engine
+            .parse(sample)
+            .expect("Parse error")
+            .expect("No match found");
         let (_, parsed) = result;
 
         // Filter actual results to only include the keys we expect to see
@@ -169,15 +177,26 @@ mod tests {
             let actual_obj = parsed.as_object().expect("Result is not an object");
             for (key, expected_val) in expected_obj {
                 let actual_val = actual_obj.get(&key).unwrap_or(&serde_json::Value::Null);
-                
+
                 if key == "date" || key == "date_access" || key == "timestamp" {
-                   // Handle timestamp comparison with a bit of tolerance for date-only parses
-                   let actual_ts = actual_val.as_i64().expect("timestamp is not an integer");
-                   let expected_ts = expected_val.as_i64().expect("expected timestamp is not an integer");
-                   assert!((actual_ts - expected_ts).abs() < 24 * 60 * 60 * 1000, 
-                           "Timestamp mismatch for {}: expected {}, got {}", key, expected_ts, actual_ts);
+                    // Handle timestamp comparison with a bit of tolerance for date-only parses
+                    let actual_ts = actual_val.as_i64().expect("timestamp is not an integer");
+                    let expected_ts = expected_val
+                        .as_i64()
+                        .expect("expected timestamp is not an integer");
+                    assert!(
+                        (actual_ts - expected_ts).abs() < 24 * 60 * 60 * 1000,
+                        "Timestamp mismatch for {}: expected {}, got {}",
+                        key,
+                        expected_ts,
+                        actual_ts
+                    );
                 } else {
-                    assert_eq!(actual_val, &expected_val, "Value mismatch for key '{}'", key);
+                    assert_eq!(
+                        actual_val, &expected_val,
+                        "Value mismatch for key '{}'",
+                        key
+                    );
                 }
             }
         }
@@ -189,7 +208,7 @@ mod tests {
             "MyParsingRule %{word:user} connected on %{date(\"MM/dd/yyyy\"):date}",
             "john connected on 11/08/2017",
             json!({"user": "john", "date": 1510099200000i64}),
-            None
+            None,
         );
     }
 
@@ -245,7 +264,7 @@ mod tests {
             "MyParsingRule Usage\\:\\s+%{number:usage}%{data:ignore}",
             "Usage: 24.3%",
             json!({"usage": 24.3, "ignore": "%"}),
-            None
+            None,
         );
     }
 
@@ -273,4 +292,3 @@ mod tests {
         );
     }
 }
-

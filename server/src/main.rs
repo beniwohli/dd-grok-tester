@@ -1,7 +1,4 @@
-use axum::{
-    routing::post,
-    Router,
-};
+use axum::{routing::post, Router};
 use tokio::net::TcpListener;
 use tower_http::cors::CorsLayer;
 use tower_http::services::{ServeDir, ServeFile};
@@ -14,9 +11,7 @@ mod models;
 
 #[tokio::main]
 async fn main() {
-    tracing_subscriber::fmt()
-        .with_max_level(Level::INFO)
-        .init();
+    tracing_subscriber::fmt().with_max_level(Level::INFO).init();
 
     let port = std::env::var("PORT")
         .unwrap_or_else(|_| "3001".to_string())
@@ -35,8 +30,10 @@ async fn main() {
         .layer(cors);
 
     let addr = format!("0.0.0.0:{}", port);
-    let listener = TcpListener::bind(&addr).await.expect("Failed to bind to port");
-    
+    let listener = TcpListener::bind(&addr)
+        .await
+        .expect("Failed to bind to port");
+
     info!("Datadog Grok Tester (Axum) listening on http://{}", addr);
 
     axum::serve(listener, app).await.expect("Server failed");
