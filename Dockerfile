@@ -3,7 +3,7 @@ FROM --platform=$BUILDPLATFORM node:20-slim AS frontend-builder
 WORKDIR /app/client
 RUN npm install -g pnpm
 # Cache dependencies
-COPY client/package.json ./
+COPY client/package.json client/pnpm-lock.yaml* ./
 RUN pnpm install
 # Build source
 COPY client/ ./
