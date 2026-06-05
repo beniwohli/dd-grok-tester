@@ -11,6 +11,30 @@
   --text-muted: #64748b;
   --error-color: #ef4444;
   --success-color: #22c55e;
+
+  /* Component tokens */
+  --editor-bg: #ffffff;
+  --input-bg: #ffffff;
+  --dropdown-bg: #ffffff;
+  --hover-bg: #f1f5f9;
+  --btn-outline-bg: #ffffff;
+  --btn-danger-hover: #fef2f2;
+}
+
+.dark-theme {
+  --bg-color: #0b0f19;
+  --card-bg: #131c2e;
+  --border-color: #222f47;
+  --text-color: #f3f4f6;
+  --text-muted: #94a3b8;
+
+  /* Component tokens */
+  --editor-bg: #0d1527;
+  --input-bg: #0d1527;
+  --dropdown-bg: #131c2e;
+  --hover-bg: #1e293b;
+  --btn-outline-bg: #131c2e;
+  --btn-danger-hover: #3b1818;
 }
 
 body {
@@ -88,7 +112,8 @@ textarea {
   font-size: 0.875rem;
   resize: vertical;
   min-height: 100px;
-  background-color: #fff;
+  background-color: var(--input-bg);
+  color: var(--text-color);
 }
 
 textarea:focus {
@@ -100,7 +125,7 @@ textarea:focus {
 .editor-container {
   border: 1px solid var(--border-color);
   border-radius: 0.5rem;
-  background-color: #fff;
+  background-color: var(--editor-bg);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
@@ -130,6 +155,8 @@ input[type="text"] {
   border: 1px solid var(--border-color);
   border-radius: 0.5rem;
   font-size: 0.875rem;
+  background-color: var(--input-bg);
+  color: var(--text-color);
 }
 
 input:focus {
@@ -179,13 +206,13 @@ input:focus {
 }
 
 .btn-outline {
-  background-color: white;
+  background-color: var(--btn-outline-bg);
   border-color: var(--border-color);
   color: var(--text-color);
 }
 
 .btn-outline:hover {
-  background-color: #f1f5f9;
+  background-color: var(--hover-bg);
 }
 
 .btn-danger {
@@ -193,15 +220,16 @@ input:focus {
 }
 
 .btn-danger:hover {
-  background-color: #fef2f2;
+  background-color: var(--btn-danger-hover);
 }
 
 .result-container {
   margin-top: 1rem;
   padding: 1rem;
-  background-color: #1e293b;
+  background-color: var(--editor-bg);
+  border: 1px solid var(--border-color);
   border-radius: 0.5rem;
-  color: #e2e8f0;
+  color: var(--text-color);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 0.8125rem;
   white-space: pre-wrap;
@@ -475,7 +503,7 @@ input:focus {
   list-style: none;
   margin: 0;
   padding: 4px 0;
-  background: #fff;
+  background-color: var(--dropdown-bg);
   border: 1px solid var(--border-color);
   border-radius: 0.5rem;
   box-shadow: 0 8px 24px -4px rgb(0 0 0 / 0.14), 0 2px 6px -1px rgb(0 0 0 / 0.08);
@@ -495,11 +523,87 @@ input:focus {
   cursor: pointer;
   white-space: nowrap;
   overflow: hidden;
+  color: var(--text-color);
 }
 
 .ac-item-active,
 .ac-item:hover {
-  background: #f1f5f9;
+  background-color: var(--hover-bg);
+}
+
+/* Header & Toggle styling */
+.header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.header-row h1 {
+  margin-bottom: 0;
+}
+
+.theme-switch-widget {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  width: 72px;
+  height: 24px;
+  background-color: #cbd5e1;
+  border-radius: 999px;
+  cursor: pointer;
+  padding: 2px;
+  transition: background-color 0.2s ease;
+  user-select: none;
+}
+
+.theme-switch-widget:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+.theme-switch-widget.light-active {
+  background-color: #e2e8f0;
+}
+
+.theme-switch-widget.system-active {
+  background-color: #94a3b8;
+}
+
+.theme-switch-widget.dark-active {
+  background-color: var(--primary-color);
+}
+
+.theme-switch-knob {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  background-color: #ffffff;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  color: #64748b;
+  transform: translateX(0px);
+}
+
+.theme-switch-widget.light-active .theme-switch-knob {
+  transform: translateX(0px);
+  color: #ea580c;
+  background-color: #fff7ed;
+}
+
+.theme-switch-widget.system-active .theme-switch-knob {
+  transform: translateX(24px);
+  color: #0284c7;
+  background-color: #f0f9ff;
+}
+
+.theme-switch-widget.dark-active .theme-switch-knob {
+  transform: translateX(48px);
+  color: #6366f1;
+  background-color: #1e293b;
 }
 
 .ac-kind {
