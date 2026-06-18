@@ -37,8 +37,11 @@ RUN cp target/$(xx-cargo --print-target-triple)/release/server /server-bin
 FROM debian:bookworm-slim
 WORKDIR /app
 RUN apt-get update && apt-get install -y ca-certificates libssl3 libonig5 tini && rm -rf /var/lib/apt/lists/*
+RUN groupadd -r appuser && useradd -r -g appuser -d /app -s /sbin/nologin appuser
 COPY --from=backend-builder /server-bin ./datadog-grok-tester
 COPY --from=frontend-builder /app/client/dist ./dist
+RUN chown -R appuser:appuser /app
+USER appuser
 ENV PORT=3001
 EXPOSE 3001
 ENTRYPOINT ["/usr/bin/tini", "--"]
