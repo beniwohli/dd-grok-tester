@@ -5,10 +5,10 @@ export const JsonFormatter = ({ data }: { data: unknown }) => {
     return <span className="timestamp-val" data-iso={iso}>{data}</span>;
   }
 
-  if (data === null) return <span style={{ color: '#94a3b8' }}>null</span>;
-  if (typeof data === 'string') return <span style={{ color: '#4ade80' }}>"{data}"</span>;
-  if (typeof data === 'boolean') return <span style={{ color: '#fb923c' }}>{String(data)}</span>;
-  if (typeof data === 'number') return <span style={{ color: '#fb923c' }}>{data}</span>;
+  if (data === null) return <span className="json-null">null</span>;
+  if (typeof data === 'string') return <span className="json-string">"{data}"</span>;
+  if (typeof data === 'boolean') return <span className="json-boolean">{String(data)}</span>;
+  if (typeof data === 'number') return <span className="json-number">{data}</span>;
 
   if (Array.isArray(data)) {
     return (
@@ -35,7 +35,7 @@ export const JsonFormatter = ({ data }: { data: unknown }) => {
         <div style={{ paddingLeft: '1.5rem' }}>
           {keys.map((key, i) => (
             <div key={key}>
-              <span style={{ color: '#818cf8' }}>"{key}"</span>: <JsonFormatter data={(data as Record<string, unknown>)[key]} />
+              <span className="json-key">"{key}"</span>: <JsonFormatter data={(data as Record<string, unknown>)[key]} />
               {i < keys.length - 1 ? ',' : ''}
             </div>
           ))}

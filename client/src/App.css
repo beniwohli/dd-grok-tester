@@ -11,6 +11,19 @@
   --text-muted: #64748b;
   --error-color: #ef4444;
   --success-color: #22c55e;
+  --result-error-color: #dc2626;
+
+  /* JSON syntax */
+  --json-null: #64748b;
+  --json-string: #16a34a;
+  --json-number: #ea580c;
+  --json-key: #4f46e5;
+
+  /* Badges */
+  --badge-bg: #e2e8f0;
+  --badge-text: #475569;
+  --active-badge-bg: #dcfce7;
+  --active-badge-text: #166534;
 
   /* Component tokens */
   --editor-bg: #ffffff;
@@ -35,6 +48,19 @@
   --hover-bg: #1e293b;
   --btn-outline-bg: #131c2e;
   --btn-danger-hover: #3b1818;
+  --result-error-color: #fca5a5;
+
+  /* JSON syntax */
+  --json-null: #94a3b8;
+  --json-string: #4ade80;
+  --json-number: #fb923c;
+  --json-key: #818cf8;
+
+  /* Badges */
+  --badge-bg: #334155;
+  --badge-text: #cbd5e1;
+  --active-badge-bg: #14532d;
+  --active-badge-text: #86efac;
 }
 
 body {
@@ -262,7 +288,7 @@ input:focus {
 }
 
 .result-error {
-  color: #fca5a5;
+  color: var(--result-error-color);
 }
 
 .label-text {
@@ -641,4 +667,46 @@ input:focus {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* JSON syntax highlighting */
+.json-null { color: var(--json-null); }
+.json-string { color: var(--json-string); }
+.json-number { color: var(--json-number); }
+.json-boolean { color: var(--json-number); }
+.json-key { color: var(--json-key); }
+
+/* Parse result indicators */
+.result-success-header {
+  color: var(--success-color);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.matched-rule-badge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background-color: var(--badge-bg);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  color: var(--badge-text);
+}
+
+.active-badge {
+  margin-left: 8px;
+  background-color: var(--active-badge-bg);
+  color: var(--active-badge-text);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: bold;
+}
+
+.history-separator {
+  margin: 0 8px;
+  color: var(--border-color);
 }

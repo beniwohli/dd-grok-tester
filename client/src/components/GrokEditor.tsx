@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Editor from 'react-simple-code-editor';
-import { highlight } from 'prismjs';
+import Prism from 'prismjs';
 import 'prismjs/components/prism-clike';
 import 'prismjs/themes/prism.css';
 
@@ -56,56 +56,48 @@ const grokLanguage = {
   }
 };
 
-// Prism hook: after tokenising, walk the token stream and tag any
-// grok-pattern / grok-filter token whose base name is a Datadog built-in
-// with an extra "dd-builtin" class so we can colour it distinctly.
-if (typeof window !== 'undefined') {
-  if (!window.Prism) {
-    await import('prismjs');
-  }
+// Walk the Prism token tree and tag Datadog built-in matchers/filters with a
+// 'dd-builtin' alias so Prism renders them with a distinct CSS class.
+interface PrismToken {
+  type: string;
+  content: string | PrismToken | (string | PrismToken)[];
+  alias: string | string[];
+}
 
-  // We attach the hook directly on the prismjs singleton that highlight() uses.
-  // Using 'after-tokenize' lets us inspect the final flat token array.
-  const h = highlight as unknown as { __ddHookInstalled?: boolean };
-  if (!h.__ddHookInstalled) {
-      h.__ddHookInstalled = true;
+function tagBuiltins(tokens: (string | PrismToken)[]) {
+  for (const token of tokens) {
+    if (typeof token === 'string') continue;
+
+    if (token.type === 'grok-pattern' && typeof token.content === 'string') {
+      const baseName = token.content.replace(/\(.*$/, '');
+      if (DD_MATCHERS.has(baseName)) {
+        token.alias = 'dd-builtin';
+      }
+    } else if (token.type === 'grok-filter' && typeof token.content === 'string') {
+      const filterName = token.content.slice(1).replace(/\(.*$/, '');
+      if (DD_FILTERS.has(filterName)) {
+        token.alias = 'dd-builtin';
+      }
+    }
+
+    // Recurse into nested content
+    if (Array.isArray(token.content)) {
+      tagBuiltins(token.content as (string | PrismToken)[]);
+    } else if (typeof token.content !== 'string') {
+      tagBuiltins([token.content]);
+    }
   }
 }
 
-// Colour DD built-ins by post-processing highlighted HTML.
-// Simpler than Prism hooks: wrap the highlighter to swap classes after the fact.
+// Register the hook once at module load. It fires after Prism tokenises any
+// 'grok' code block, before the tokens are stringified to HTML.
+Prism.hooks.add('after-tokenize', (env) => {
+  if (env.language !== 'grok') return;
+  tagBuiltins(env.tokens as (string | PrismToken)[]);
+});
+
 const highlightGrok = (code: string): string => {
-  // Run standard Prism highlight.
-  let html: string = highlight(code, grokLanguage, 'grok');
-
-  // Replace grok-pattern tokens that are Datadog built-ins.
-  // The rendered span looks like: <span class="token grok-pattern">NAME</span>
-  // or with args:                 <span class="token grok-pattern">NAME("...")</span>
-  html = html.replace(
-    /<span class="token grok-pattern keyword">([^<(]+)(<[^>]*>.*?<\/[^>]+>|[^<]*)<\/span>/g,
-    (match, baseName, rest) => {
-      const name = baseName.trim();
-      if (DD_MATCHERS.has(name)) {
-        return `<span class="token grok-pattern dd-builtin">${baseName}${rest}</span>`;
-      }
-      return match;
-    }
-  );
-
-  // Replace grok-filter tokens that are Datadog built-ins.
-  // Rendered as: <span class="token grok-filter">:FILTERNAME</span>
-  // or with args: <span class="token grok-filter">:FILTERNAME(...)</span>
-  html = html.replace(
-    /<span class="token grok-filter">:([a-zA-Z0-9_]+)(.*?)<\/span>/g,
-    (match, filterName, rest) => {
-      if (DD_FILTERS.has(filterName)) {
-        return `<span class="token grok-filter dd-builtin">:${filterName}${rest}</span>`;
-      }
-      return match;
-    }
-  );
-
-  return html;
+  return Prism.highlight(code, grokLanguage as Prism.Grammar, 'grok');
 };
 
 // ---------------------------------------------------------------------------
@@ -123,51 +115,51 @@ interface AcItem {
 }
 
 const AC_MATCHERS: AcItem[] = [
-  { label: 'date',               kind: 'matcher', suffix: '("',  desc: 'Parse date → Unix timestamp' },
-  { label: 'regex',              kind: 'matcher', suffix: '("',  desc: 'Match a custom regex' },
-  { label: 'notSpace',           kind: 'matcher',                 desc: 'Any string up to next space' },
   { label: 'boolean',            kind: 'matcher',                 desc: 'true / false (case-insensitive)' },
-  { label: 'numberStr',          kind: 'matcher',                 desc: 'Float → string' },
-  { label: 'number',             kind: 'matcher',                 desc: 'Float → double' },
-  { label: 'numberExtStr',       kind: 'matcher',                 desc: 'Float w/ sci-notation → string' },
-  { label: 'numberExt',          kind: 'matcher',                 desc: 'Float w/ sci-notation → double' },
-  { label: 'integerStr',         kind: 'matcher',                 desc: 'Integer → string' },
-  { label: 'integer',            kind: 'matcher',                 desc: 'Integer → integer' },
-  { label: 'integerExtStr',      kind: 'matcher',                 desc: 'Integer w/ sci-notation → string' },
-  { label: 'integerExt',         kind: 'matcher',                 desc: 'Integer w/ sci-notation → integer' },
-  { label: 'word',               kind: 'matcher',                 desc: 'Word boundary token (\\b\\w+\\b)' },
+  { label: 'data',               kind: 'matcher',                 desc: 'Any string incl. spaces (.*)' },
+  { label: 'date',               kind: 'matcher', suffix: '("',  desc: 'Parse date → Unix timestamp' },
   { label: 'doubleQuotedString', kind: 'matcher',                 desc: 'Double-quoted string' },
-  { label: 'singleQuotedString', kind: 'matcher',                 desc: 'Single-quoted string' },
-  { label: 'quotedString',       kind: 'matcher',                 desc: 'Single- or double-quoted string' },
-  { label: 'uuid',               kind: 'matcher',                 desc: 'UUID' },
-  { label: 'mac',                kind: 'matcher',                 desc: 'MAC address' },
+  { label: 'hostname',           kind: 'matcher',                 desc: 'Hostname' },
+  { label: 'integer',            kind: 'matcher',                 desc: 'Integer → integer' },
+  { label: 'integerExt',         kind: 'matcher',                 desc: 'Integer w/ sci-notation → integer' },
+  { label: 'integerExtStr',      kind: 'matcher',                 desc: 'Integer w/ sci-notation → string' },
+  { label: 'integerStr',         kind: 'matcher',                 desc: 'Integer → string' },
+  { label: 'ip',                 kind: 'matcher',                 desc: 'IPv4 or IPv6 address' },
+  { label: 'ipOrHost',           kind: 'matcher',                 desc: 'Hostname or IP' },
   { label: 'ipv4',               kind: 'matcher',                 desc: 'IPv4 address' },
   { label: 'ipv6',               kind: 'matcher',                 desc: 'IPv6 address' },
-  { label: 'ip',                 kind: 'matcher',                 desc: 'IPv4 or IPv6 address' },
-  { label: 'hostname',           kind: 'matcher',                 desc: 'Hostname' },
-  { label: 'ipOrHost',           kind: 'matcher',                 desc: 'Hostname or IP' },
+  { label: 'mac',                kind: 'matcher',                 desc: 'MAC address' },
+  { label: 'notSpace',           kind: 'matcher',                 desc: 'Any string up to next space' },
+  { label: 'number',             kind: 'matcher',                 desc: 'Float → double' },
+  { label: 'numberExt',          kind: 'matcher',                 desc: 'Float w/ sci-notation → double' },
+  { label: 'numberExtStr',       kind: 'matcher',                 desc: 'Float w/ sci-notation → string' },
+  { label: 'numberStr',          kind: 'matcher',                 desc: 'Float → string' },
   { label: 'port',               kind: 'matcher',                 desc: 'Port number' },
-  { label: 'data',               kind: 'matcher',                 desc: 'Any string incl. spaces (.*)' },
+  { label: 'quotedString',       kind: 'matcher',                 desc: 'Single- or double-quoted string' },
+  { label: 'regex',              kind: 'matcher', suffix: '("',  desc: 'Match a custom regex' },
+  { label: 'singleQuotedString', kind: 'matcher',                 desc: 'Single-quoted string' },
+  { label: 'uuid',               kind: 'matcher',                 desc: 'UUID' },
+  { label: 'word',               kind: 'matcher',                 desc: 'Word boundary token (\\b\\w+\\b)' },
 ];
 
 const AC_FILTERS: AcItem[] = [
-  { label: 'number',             kind: 'filter',                  desc: 'Parse as double' },
-  { label: 'integer',            kind: 'filter',                  desc: 'Parse as integer' },
-  { label: 'boolean',            kind: 'filter',                  desc: 'Parse true/false string' },
-  { label: 'nullIf',             kind: 'filter',  suffix: '("',   desc: 'Null if equals value' },
-  { label: 'json',               kind: 'filter',                  desc: 'Parse JSON' },
-  { label: 'rubyhash',           kind: 'filter',                  desc: 'Parse Ruby hash' },
-  { label: 'useragent',          kind: 'filter',                  desc: 'Parse user-agent string' },
-  { label: 'querystring',        kind: 'filter',                  desc: 'Parse URL query string' },
-  { label: 'decodeuricomponent', kind: 'filter',                  desc: 'Decode URI component' },
-  { label: 'lowercase',          kind: 'filter',                  desc: 'Lowercase string' },
-  { label: 'uppercase',          kind: 'filter',                  desc: 'Uppercase string' },
-  { label: 'keyvalue',           kind: 'filter',  suffix: '(',    desc: 'Parse key=value pairs' },
-  { label: 'xml',                kind: 'filter',                  desc: 'Parse XML' },
-  { label: 'csv',                kind: 'filter',  suffix: '(',    desc: 'Parse CSV / TSV' },
-  { label: 'scale',              kind: 'filter',  suffix: '(',    desc: 'Multiply by factor' },
   { label: 'array',              kind: 'filter',  suffix: '(',    desc: 'Parse list into array' },
+  { label: 'boolean',            kind: 'filter',                  desc: 'Parse true/false string' },
+  { label: 'csv',                kind: 'filter',  suffix: '(',    desc: 'Parse CSV / TSV' },
+  { label: 'decodeuricomponent', kind: 'filter',                  desc: 'Decode URI component' },
+  { label: 'integer',            kind: 'filter',                  desc: 'Parse as integer' },
+  { label: 'json',               kind: 'filter',                  desc: 'Parse JSON' },
+  { label: 'keyvalue',           kind: 'filter',  suffix: '(',    desc: 'Parse key=value pairs' },
+  { label: 'lowercase',          kind: 'filter',                  desc: 'Lowercase string' },
+  { label: 'nullIf',             kind: 'filter',  suffix: '("',   desc: 'Null if equals value' },
+  { label: 'number',             kind: 'filter',                  desc: 'Parse as double' },
+  { label: 'querystring',        kind: 'filter',                  desc: 'Parse URL query string' },
+  { label: 'rubyhash',           kind: 'filter',                  desc: 'Parse Ruby hash' },
+  { label: 'scale',              kind: 'filter',  suffix: '(',    desc: 'Multiply by factor' },
+  { label: 'uppercase',          kind: 'filter',                  desc: 'Uppercase string' },
   { label: 'url',                kind: 'filter',                  desc: 'Parse URL into components' },
+  { label: 'useragent',          kind: 'filter',                  desc: 'Parse user-agent string' },
+  { label: 'xml',                kind: 'filter',                  desc: 'Parse XML' },
 ];
 
 // ---------------------------------------------------------------------------
@@ -214,6 +206,7 @@ function getAcContext(text: string, cursor: number): AcContext | null {
 
 export const GrokEditor = ({ value, onChange, placeholder }: { value: string, onChange: (val: string) => void, placeholder?: string }) => {
   const containerRef  = useRef<HTMLDivElement>(null);
+  const dropdownRef   = useRef<HTMLUListElement>(null);
   const [acItems, setAcItems]       = useState<AcItem[]>([]);
   const [acIndex, setAcIndex]       = useState(0);
   const [acContext, setAcContext]   = useState<AcContext | null>(null);
@@ -226,6 +219,16 @@ export const GrokEditor = ({ value, onChange, placeholder }: { value: string, on
   useEffect(() => { acIndexRef.current   = acIndex; },   [acIndex]);
   useEffect(() => { acItemsRef.current   = acItems; },   [acItems]);
   useEffect(() => { acContextRef.current = acContext; }, [acContext]);
+
+  // Ensure active item is visible in dropdown
+  useEffect(() => {
+    if (acItems.length > 0 && dropdownRef.current) {
+      const activeEl = dropdownRef.current.querySelector('.ac-item-active') as HTMLElement;
+      if (activeEl) {
+        activeEl.scrollIntoView({ block: 'nearest' });
+      }
+    }
+  }, [acIndex, acItems]);
 
   const closeDropdown = useCallback(() => {
     setAcItems([]); setAcContext(null); setDropdownPos(null);
@@ -355,7 +358,7 @@ export const GrokEditor = ({ value, onChange, placeholder }: { value: string, on
         }}
       />
       {acItems.length > 0 && dropdownPos && (
-        <ul className="ac-dropdown" style={{ top: dropdownPos.top, left: dropdownPos.left }}>
+        <ul ref={dropdownRef} className="ac-dropdown" style={{ top: dropdownPos.top, left: dropdownPos.left }}>
           {acItems.map((item, idx) => (
             <li
               key={item.label}

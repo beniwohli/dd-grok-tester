@@ -83,7 +83,7 @@ export const HistoryTab = ({
                 <div className="history-date">
                   {new Date(item.timestamp).toLocaleString()}
                   {item.id === currentSessionId && (
-                    <span style={{ marginLeft: '8px', backgroundColor: '#dcfce7', color: '#166534', padding: '2px 6px', borderRadius: '4px', fontSize: '10px', fontWeight: 'bold' }}>ACTIVE</span>
+                    <span className="active-badge">ACTIVE</span>
                   )}
                 </div>
                 <div className="history-summary">
@@ -95,7 +95,7 @@ export const HistoryTab = ({
                   <div style={{ color: 'var(--text-muted)' }}>
                     {item.matchRules.split('\n')[0] || 'No rules'} 
                     {item.matchRules.split('\n').length > 1 ? ' ...' : ''}
-                    <span style={{ margin: '0 8px', color: '#e2e8f0' }}>|</span>
+                    <span className="history-separator">|</span>
                     {item.samples.length} sample(s)
                   </div>
                 </div>

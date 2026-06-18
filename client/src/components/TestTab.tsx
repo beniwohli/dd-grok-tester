@@ -124,12 +124,12 @@ export const TestTab = ({
                   </div>
                 ) : results[sample.id].parsed ? (
                   <div>
-                    <div style={{ color: '#4ade80', marginBottom: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div className="result-success-header">
                       <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                         <CheckCircle2 size={14} /> Parsed Successfully
                       </div>
                       {results[sample.id].matched_rule && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', backgroundColor: '#334155', padding: '2px 8px', borderRadius: '4px', fontSize: '11px', color: '#cbd5e1' }}>
+                        <div className="matched-rule-badge">
                           <Tag size={10} /> {results[sample.id].matched_rule}
                         </div>
                       )}

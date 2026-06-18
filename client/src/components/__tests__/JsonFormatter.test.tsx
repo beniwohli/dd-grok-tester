@@ -6,25 +6,25 @@ describe('JsonFormatter', () => {
   it('renders strings with green color', () => {
     render(<JsonFormatter data="hello" />);
     const span = screen.getByText('"hello"');
-    expect(span).toHaveStyle({ color: '#4ade80' });
+    expect(span).toHaveClass('json-string');
   });
 
   it('renders numbers with orange color', () => {
     render(<JsonFormatter data={42} />);
     const span = screen.getByText('42');
-    expect(span).toHaveStyle({ color: '#fb923c' });
+    expect(span).toHaveClass('json-number');
   });
 
   it('renders booleans with orange color', () => {
     render(<JsonFormatter data={true} />);
     const span = screen.getByText('true');
-    expect(span).toHaveStyle({ color: '#fb923c' });
+    expect(span).toHaveClass('json-boolean');
   });
 
   it('renders null with muted color', () => {
     render(<JsonFormatter data={null} />);
     const span = screen.getByText('null');
-    expect(span).toHaveStyle({ color: '#94a3b8' });
+    expect(span).toHaveClass('json-null');
   });
 
   it('detects and formats timestamps', () => {
@@ -45,8 +45,8 @@ describe('JsonFormatter', () => {
 
   it('renders objects recursively', () => {
     render(<JsonFormatter data={{ key: "value" }} />);
-    expect(screen.getByText('"key"')).toHaveStyle({ color: '#818cf8' });
-    expect(screen.getByText('"value"')).toHaveStyle({ color: '#4ade80' });
+    expect(screen.getByText('"key"')).toHaveClass('json-key');
+    expect(screen.getByText('"value"')).toHaveClass('json-string');
     expect(screen.getByText((content) => content.startsWith('{'))).toBeInTheDocument();
     expect(screen.getByText((content) => content.endsWith('}'))).toBeInTheDocument();
   });
