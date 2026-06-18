@@ -1,4 +1,4 @@
-use axum::{routing::post, Router};
+use axum::{extract::DefaultBodyLimit, routing::post, Router};
 use tokio::net::TcpListener;
 use tower_http::cors::CorsLayer;
 use tower_http::services::{ServeDir, ServeFile};
@@ -27,7 +27,8 @@ async fn main() {
     let app = Router::new()
         .route("/api/parse", post(handlers::parse_grok_handler))
         .fallback_service(serve_dir)
-        .layer(cors);
+        .layer(cors)
+        .layer(DefaultBodyLimit::max(256 * 1024)); // 256 KB
 
     let addr = format!("0.0.0.0:{}", port);
     let listener = TcpListener::bind(&addr)

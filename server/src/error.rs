@@ -15,6 +15,12 @@ pub enum AppError {
 
     #[error("Rule '{rule_name}': {message}")]
     CompilationError { rule_name: String, message: String },
+
+    #[error("{0}")]
+    PayloadTooLarge(String),
+
+    #[error("Request timed out")]
+    Timeout,
 }
 
 // Convert from GrokError into AppError
@@ -40,6 +46,8 @@ impl IntoResponse for AppError {
                 StatusCode::BAD_REQUEST,
                 format!("Rule '{}': {}", rule_name, message),
             ),
+            AppError::PayloadTooLarge(msg) => (StatusCode::PAYLOAD_TOO_LARGE, msg.clone()),
+            AppError::Timeout => (StatusCode::REQUEST_TIMEOUT, self.to_string()),
         };
 
         let body = serde_json::json!({
