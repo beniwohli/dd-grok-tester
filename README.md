@@ -49,9 +49,7 @@ The frontend will be available at `http://localhost:5173`, proxying API requests
 <img width="978" height="637" alt="Screenshot 2026-06-26 at 15 35 56" src="https://github.com/user-attachments/assets/a73f8b3e-9b84-448f-af3b-b69960561acc" />
 
 ### Testing log samples
-
-<img width="978" height="647" alt="Screenshot 2026-06-26 at 15 33 57" src="https://github.com/user-attachments/assets/7da1e9a4-38e8-4ecf-abea-e62b67ce3d62" />
-
+<img width="978" height="411" alt="Screenshot 2026-06-26 at 15 34 18" src="https://github.com/user-attachments/assets/3c23c36e-d102-4037-996b-b9cb95fdb18a" />
 
 ## Testing
 
