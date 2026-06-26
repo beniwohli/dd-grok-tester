@@ -44,6 +44,15 @@ If you prefer to build the image locally:
 
 The frontend will be available at `http://localhost:5173`, proxying API requests to the Rust server at `http://localhost:3001`.
 
+## Screenshots
+### Editing rules
+<img width="978" height="637" alt="Screenshot 2026-06-26 at 15 35 56" src="https://github.com/user-attachments/assets/a73f8b3e-9b84-448f-af3b-b69960561acc" />
+
+### Testing log samples
+
+<img width="978" height="647" alt="Screenshot 2026-06-26 at 15 33 57" src="https://github.com/user-attachments/assets/7da1e9a4-38e8-4ecf-abea-e62b67ce3d62" />
+
+
 ## Testing
 
 A Python-based test suite is available to verify parsing against official Datadog examples.
