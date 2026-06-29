@@ -30,7 +30,8 @@ async fn main() {
         .layer(cors)
         .layer(DefaultBodyLimit::max(256 * 1024)); // 256 KB
 
-    let addr = format!("0.0.0.0:{}", port);
+    let host = std::env::var("HOST").unwrap_or_else(|_| "127.0.0.1".to_string());
+    let addr = format!("{}:{}", host, port);
     let listener = TcpListener::bind(&addr)
         .await
         .expect("Failed to bind to port");

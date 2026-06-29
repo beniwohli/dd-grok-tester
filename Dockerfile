@@ -43,6 +43,7 @@ COPY --from=frontend-builder /app/client/dist ./dist
 RUN chown -R appuser:appuser /app
 USER appuser
 ENV PORT=3001
+ENV HOST=0.0.0.0
 EXPOSE 3001
 ENTRYPOINT ["/usr/bin/tini", "--"]
 CMD ["./datadog-grok-tester"]
