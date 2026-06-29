@@ -57,8 +57,8 @@ export const useGrokSession = () => {
     const toHCLBlock = (line: string) => {
       const { name, pattern } = parseRuleLine(line);
       return `    {
-      name    = "${escapeHCLString(name)}"
-      pattern = "${escapeHCLString(pattern)}"
+      name = "${escapeHCLString(name)}"
+      rule = "${escapeHCLString(pattern)}"
     }`;
     };
 
