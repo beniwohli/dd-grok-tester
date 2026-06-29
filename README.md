@@ -53,18 +53,32 @@ The frontend will be available at `http://localhost:5173`, proxying API requests
 
 ## Testing
 
-A Python-based test suite is available to verify parsing against official Datadog examples.
+### Backend
 
-1. Create and activate a virtual environment:
+The backend tests are written in Rust and verify parsing against official Datadog examples.
+
+1. Navigate to the server directory:
    ```bash
-   uv venv .venv
-   source .venv/bin/activate
-   uv pip install pytest requests
+   cd server
    ```
 
-2. Ensure the server is running, then execute the tests:
+2. Execute the tests:
    ```bash
-   pytest tests/test_grok_examples.py -vv
+   cargo test
+   ```
+
+### Frontend
+
+The frontend uses Vitest for testing.
+
+1. Navigate to the client directory:
+   ```bash
+   cd client
+   ```
+
+2. Execute the tests:
+   ```bash
+   pnpm test
    ```
 
 ## License
