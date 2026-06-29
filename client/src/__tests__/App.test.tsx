@@ -46,6 +46,6 @@ describe('App', () => {
     const sampleInput = screen.getByPlaceholderText('Enter log line...');
     fireEvent.change(sampleInput, { target: { value: 'my log line' } });
     
-    expect(screen.getByText('Add Sample')).toBeInTheDocument();
+    expect(screen.getAllByText('Add Sample')[0]).toBeInTheDocument();
   });
 });

@@ -148,6 +148,14 @@ export const TestTab = ({
             )}
           </div>
         ))}
+        
+        {samples.length > 0 && (
+          <div style={{ marginTop: '1rem', display: 'flex', justifyContent: 'center' }}>
+            <button className="btn btn-outline" onClick={addSample}>
+              <Plus size={16} /> Add Sample
+            </button>
+          </div>
+        )}
       </div>
 
       <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
