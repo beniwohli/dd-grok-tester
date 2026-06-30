@@ -7,7 +7,8 @@ COPY client/package.json client/pnpm-lock.yaml* ./
 RUN pnpm install
 # Build source
 COPY client/ ./
-RUN pnpm run build
+ARG ENABLE_SOURCEMAP=false
+RUN if [ "$ENABLE_SOURCEMAP" = "true" ]; then pnpm run build --sourcemap; else pnpm run build; fi
 
 # --- Backend Build Stage ---
 FROM --platform=$BUILDPLATFORM rust:1.94-slim-bookworm AS backend-builder
