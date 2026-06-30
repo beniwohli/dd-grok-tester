@@ -20,11 +20,11 @@ describe('App', () => {
     expect(screen.getByText('Datadog Grok Tester')).toBeInTheDocument();
   });
 
-  it('switches tabs', () => {
+  it('switches tabs correctly', () => {
     render(<App />);
     
-    const historyTab = screen.getByText('History');
-    fireEvent.click(historyTab);
+    const libraryTab = screen.getByText('Library');
+    fireEvent.click(libraryTab);
     expect(screen.getByText('Actions')).toBeInTheDocument();
 
     const docsTab = screen.getByText('Docs');

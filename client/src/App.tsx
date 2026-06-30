@@ -1,18 +1,21 @@
 import { useRef, useState, useEffect } from 'react';
-import { CheckCircle, History as HistoryIcon, Play, BookOpen, Sun, Moon, Monitor } from 'lucide-react';
+import { CheckCircle, Library as LibraryIcon, Play, BookOpen, Sun, Moon, Monitor } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import './App.css';
 
 import docsContent from './Docs.md?raw';
 import { ImportDialog } from './components/ImportDialog';
+import { ImportTerraformDialog } from './components/ImportTerraformDialog';
 import { TestTab } from './components/TestTab';
-import { HistoryTab } from './components/HistoryTab';
+import { LibraryTab } from './components/LibraryTab';
 import { useGrokSession } from './hooks/useGrokSession';
+import { parseTerraform } from './utils';
 
 function App() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const ddIntegrationInputRef = useRef<HTMLInputElement>(null);
+  const [isTerraformImportOpen, setIsTerraformImportOpen] = useState(false);
 
   const [theme, setTheme] = useState<'light' | 'system' | 'dark'>(() => {
     return (localStorage.getItem('dd-grok-theme') as 'light' | 'system' | 'dark') || 'system';
@@ -78,12 +81,27 @@ function App() {
     exportHistory,
     importHistory,
     importDatadogIntegrations,
+    importFromTerraform,
     confirmDdImport,
     exportAsTerraform,
     isClearSessionPending,
     isClearHistoryPending,
     pendingDeleteId,
   } = useGrokSession();
+
+  const handleTerraformImport = (hcl: string) => {
+    try {
+      const parsed = parseTerraform(hcl);
+      if (!parsed.idPrefix && !parsed.matchRules && !parsed.supportRules) {
+        throw new Error('No valid configuration found');
+      }
+      importFromTerraform(parsed);
+      setIsTerraformImportOpen(false);
+    } catch (e) {
+      console.error(e);
+      alert('Failed to parse Terraform configuration. Please check the format.');
+    }
+  };
 
   return (
     <div className="container">
@@ -140,7 +158,7 @@ function App() {
           className={`tab ${currentTab === 'history' ? 'active' : ''}`}
           onClick={() => setCurrentTab('history')}
         >
-          <HistoryIcon size={16} style={{ marginBottom: '-3px', marginRight: '4px' }} /> History
+          <LibraryIcon size={16} style={{ marginBottom: '-3px', marginRight: '4px' }} /> Library
         </div>
         <div 
           className={`tab ${currentTab === 'docs' ? 'active' : ''}`}
@@ -171,7 +189,7 @@ function App() {
       )}
 
       {currentTab === 'history' && (
-        <HistoryTab
+        <LibraryTab
           history={history}
           exportHistory={exportHistory}
           fileInputRef={fileInputRef}
@@ -184,6 +202,7 @@ function App() {
             importDatadogIntegrations(e);
             if (ddIntegrationInputRef.current) ddIntegrationInputRef.current.value = '';
           }}
+          openTerraformImport={() => setIsTerraformImportOpen(true)}
           clearHistory={clearHistory}
           isClearHistoryPending={isClearHistoryPending}
           currentSessionId={currentSessionId}
@@ -204,6 +223,13 @@ function App() {
           candidates={ddImportCandidates}
           onConfirm={confirmDdImport}
           onCancel={() => setDdImportCandidates(null)}
+        />
+      )}
+
+      {isTerraformImportOpen && (
+        <ImportTerraformDialog
+          onConfirm={handleTerraformImport}
+          onCancel={() => setIsTerraformImportOpen(false)}
         />
       )}
     </div>

@@ -1,14 +1,15 @@
-import type React from 'react';
-import { Download, Upload, Trash2 } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { Download, Upload, Trash2, ChevronDown } from 'lucide-react';
 import type { HistoryItem } from '../types';
 
-interface HistoryTabProps {
+interface LibraryTabProps {
   history: HistoryItem[];
   exportHistory: () => void;
   fileInputRef: React.RefObject<HTMLInputElement | null>;
   importHistory: (e: React.ChangeEvent<HTMLInputElement>) => void;
   ddIntegrationInputRef: React.RefObject<HTMLInputElement | null>;
   importDatadogIntegrations: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  openTerraformImport: () => void;
   clearHistory: () => void;
   isClearHistoryPending: boolean;
   currentSessionId: string;
@@ -17,42 +18,100 @@ interface HistoryTabProps {
   deleteFromHistory: (id: string) => void;
 }
 
-export const HistoryTab = ({
+export const LibraryTab = ({
   history,
   exportHistory,
   fileInputRef,
   importHistory,
   ddIntegrationInputRef,
   importDatadogIntegrations,
+  openTerraformImport,
   clearHistory,
   isClearHistoryPending,
   currentSessionId,
   loadFromHistory,
   pendingDeleteId,
   deleteFromHistory,
-}: HistoryTabProps) => {
+}: LibraryTabProps) => {
+  const [isImportDropdownOpen, setIsImportDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsImportDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   return (
     <>
       <div className="card">
         <div className="section-title">
           Actions
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
             <button className="btn btn-outline" onClick={exportHistory}>
               <Download size={16} /> Export JSON
             </button>
-            <button className="btn btn-outline" onClick={() => fileInputRef.current?.click()}>
-              <Upload size={16} /> Import JSON
-            </button>
-            <button className="btn btn-outline" onClick={() => ddIntegrationInputRef.current?.click()}>
-              <Upload size={16} /> Import Datadog Integrations
-            </button>
+            <div className="dropdown" ref={dropdownRef} style={{ position: 'relative' }}>
+              <button 
+                className="btn btn-outline" 
+                onClick={() => setIsImportDropdownOpen(!isImportDropdownOpen)}
+              >
+                <Upload size={16} /> Import... <ChevronDown size={14} style={{ marginLeft: '4px' }} />
+              </button>
+              {isImportDropdownOpen && (
+                <div 
+                  className="dropdown-menu" 
+                  style={{
+                    position: 'absolute',
+                    top: '100%',
+                    right: 0,
+                    marginTop: '0.5rem',
+                    background: 'var(--bg-color)',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: '6px',
+                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+                    zIndex: 10,
+                    minWidth: '240px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    overflow: 'hidden'
+                  }}
+                >
+                  <button 
+                    className="dropdown-item" 
+                    onClick={() => { fileInputRef.current?.click(); setIsImportDropdownOpen(false); }}
+                    style={{ padding: '0.75rem 1rem', border: 'none', background: 'none', textAlign: 'left', color: 'var(--text-color)', cursor: 'pointer', fontSize: '14px' }}
+                  >
+                    Import JSON
+                  </button>
+                  <button 
+                    className="dropdown-item" 
+                    onClick={() => { ddIntegrationInputRef.current?.click(); setIsImportDropdownOpen(false); }}
+                    style={{ padding: '0.75rem 1rem', border: 'none', background: 'none', textAlign: 'left', color: 'var(--text-color)', cursor: 'pointer', fontSize: '14px', borderTop: '1px solid var(--border-color)' }}
+                  >
+                    Import Datadog Integrations
+                  </button>
+                  <button 
+                    className="dropdown-item" 
+                    onClick={() => { openTerraformImport(); setIsImportDropdownOpen(false); }}
+                    style={{ padding: '0.75rem 1rem', border: 'none', background: 'none', textAlign: 'left', color: 'var(--text-color)', cursor: 'pointer', fontSize: '14px', borderTop: '1px solid var(--border-color)' }}
+                  >
+                    Import Terraform (.tfvars)
+                  </button>
+                </div>
+              )}
+            </div>
             <button
               className="btn btn-danger"
               style={{ border: '1px solid var(--error-color)' }}
               onClick={clearHistory}
             >
               <Trash2 size={16} />
-              {isClearHistoryPending ? 'Click again to confirm' : 'Clear History'}
+              {isClearHistoryPending ? 'Click again to confirm' : 'Clear Library'}
             </button>
             <input 
               type="file" 

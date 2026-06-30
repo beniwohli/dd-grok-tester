@@ -122,6 +122,7 @@ ${supportRulesList}
     exportHistory: historyHook.exportHistory,
     importHistory: historyHook.importHistory,
     importDatadogIntegrations: historyHook.importDatadogIntegrations,
+    importFromTerraform: historyHook.importFromTerraform,
     confirmDdImport: historyHook.confirmDdImport,
     exportAsTerraform,
     isClearSessionPending: confirmActions.isClearSessionPending,

@@ -710,3 +710,11 @@ input:focus {
   margin: 0 8px;
   color: var(--border-color);
 }
+.dropdown-item:hover {
+  background-color: var(--card-bg-color);
+  filter: brightness(1.1);
+}
+
+.dark-theme .dropdown-item:hover {
+  background-color: var(--border-color);
+}

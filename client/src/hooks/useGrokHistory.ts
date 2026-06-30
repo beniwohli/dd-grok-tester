@@ -189,6 +189,19 @@ export const useGrokHistory = ({
     showToast(`Imported ${newSessions.length} session${newSessions.length !== 1 ? 's' : ''}`);
   };
 
+  const importFromTerraform = (parsed: { idPrefix: string; matchRules: string; supportRules: string; }) => {
+    const newSession: HistoryItem = {
+      id: generateId(),
+      name: parsed.idPrefix || 'Terraform Import',
+      timestamp: Date.now(),
+      matchRules: parsed.matchRules,
+      supportRules: parsed.supportRules,
+      samples: [],
+    };
+    setHistory(prev => [newSession, ...prev]);
+    showToast('Imported Terraform configuration');
+  };
+
   return {
     history,
     ddImportCandidates,
@@ -201,5 +214,6 @@ export const useGrokHistory = ({
     importHistory,
     importDatadogIntegrations,
     confirmDdImport,
+    importFromTerraform,
   };
 };

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { generateId, parseRuleLine } from '../utils';
+import { generateId, parseRuleLine, parseTerraform } from '../utils';
 
 describe('utils', () => {
   describe('generateId', () => {
@@ -39,6 +39,46 @@ describe('utils', () => {
       const { name, pattern } = parseRuleLine('name   pattern   ');
       expect(name).toBe('name');
       expect(pattern).toBe('pattern');
+    });
+  });
+
+  describe('parseTerraform', () => {
+    it('should parse valid terraform HCL correctly', () => {
+      const hcl = `{
+        id_prefix   = "apache"
+        log_sources = ["nevis"]
+        rules = [
+          {
+            name = "nevis_app_with_trace"
+            rule = "\\[%%{_log.file.name}\\] %%{_timestamp_app} %%{notSpace:thread.id} %%{regex(\\"[0-9a-f]{32}\\"):trace.id} %%{regex(\\"[0-9a-f]{16}\\"):span.id}\\\\s+%%{notSpace:log.category}\\\\s+%%{_log.level}\\\\s+%%{_message}"
+          },
+          {
+            name = "nevis_app_no_trace"
+            rule = "\\[%%{_log.file.name}\\] %%{_timestamp_app} %%{notSpace:thread.id}\\\\s+%%{notSpace:log.category}\\\\s+%%{_log.level}\\\\s+%%{_message}"
+          }
+        ]
+        support_rules = [
+          {
+            name = "_log.file.name"
+            rule = "%%{data:log.file.name}"
+          },
+          {
+            name = "_timestamp_app"
+            rule = "%%{date(\\"yyyy-MM-dd'T'HH:mm:ss,SSS\\"):timestamp}"
+          }
+        ]
+      }`;
+
+      const parsed = parseTerraform(hcl);
+      expect(parsed.idPrefix).toBe('apache');
+      expect(parsed.matchRules).toBe(
+        `nevis_app_with_trace \\[%{_log.file.name}\\] %{_timestamp_app} %{notSpace:thread.id} %{regex("[0-9a-f]{32}"):trace.id} %{regex("[0-9a-f]{16}"):span.id}\\s+%{notSpace:log.category}\\s+%{_log.level}\\s+%{_message}\n` +
+        `nevis_app_no_trace \\[%{_log.file.name}\\] %{_timestamp_app} %{notSpace:thread.id}\\s+%{notSpace:log.category}\\s+%{_log.level}\\s+%{_message}`
+      );
+      expect(parsed.supportRules).toBe(
+        `_log.file.name %{data:log.file.name}\n` +
+        `_timestamp_app %{date("yyyy-MM-dd'T'HH:mm:ss,SSS"):timestamp}`
+      );
     });
   });
 });
