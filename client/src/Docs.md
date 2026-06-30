@@ -13,7 +13,7 @@ Welcome to the **Datadog Grok Tester**! This tool allows you to write, test, and
 
 If you want to use the official Datadog Integration parsing rules:
 
-1. **Get the Integration JSON:** You can download the JSON export of a Datadog Integration Pipeline directly from the Datadog UI. Navigate to **Logs -> Configuration -> Pipelines**, find the integration you want, and export it as JSON.
+1. **Get the Integration JSON:** You can download the JSON for all Datadog pipelines by downloading https://app.datadoghq.eu/api/ui/event-platform/logs/integrations while logged into Datadog.
 2. **Import into the Tester:** Go to the **History** tab in this tool. Click the **Import Datadog Integrations** button and select the exported JSON file.
 3. **Select Rules to Keep:** The tool will find all the Grok parsing processors in the file and let you cherry-pick the ones you want to save as sessions in your History.
 
