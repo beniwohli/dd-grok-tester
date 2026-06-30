@@ -8,7 +8,8 @@ RUN pnpm install
 # Build source
 COPY client/ ./
 ARG ENABLE_SOURCEMAP=false
-RUN if [ "$ENABLE_SOURCEMAP" = "true" ]; then pnpm run build --sourcemap; else pnpm run build; fi
+ENV ENABLE_SOURCEMAP=$ENABLE_SOURCEMAP
+RUN pnpm run build
 
 # --- Backend Build Stage ---
 FROM --platform=$BUILDPLATFORM rust:1.94-slim-bookworm AS backend-builder
