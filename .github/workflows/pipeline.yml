@@ -119,5 +119,6 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             ENABLE_SOURCEMAP=true
+            ENABLE_DEBUG_LOGGING=true
           cache-from: type=gha
           cache-to: type=gha,mode=max

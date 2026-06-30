@@ -2,6 +2,7 @@ use axum::{extract::DefaultBodyLimit, routing::post, Router};
 use tokio::net::TcpListener;
 use tower_http::cors::CorsLayer;
 use tower_http::services::{ServeDir, ServeFile};
+use tower_http::trace::TraceLayer;
 use tracing::{info, Level};
 
 mod error;
@@ -11,7 +12,12 @@ mod models;
 
 #[tokio::main]
 async fn main() {
-    tracing_subscriber::fmt().with_max_level(Level::INFO).init();
+    let log_level = if std::env::var("DEBUG_LOGGING").unwrap_or_default() == "true" {
+        Level::DEBUG
+    } else {
+        Level::INFO
+    };
+    tracing_subscriber::fmt().with_max_level(log_level).init();
 
     let port = std::env::var("PORT")
         .unwrap_or_else(|_| "3001".to_string())
@@ -27,6 +33,7 @@ async fn main() {
     let app = Router::new()
         .route("/api/parse", post(handlers::parse_grok_handler))
         .fallback_service(serve_dir)
+        .layer(TraceLayer::new_for_http())
         .layer(cors)
         .layer(DefaultBodyLimit::max(256 * 1024)); // 256 KB
 

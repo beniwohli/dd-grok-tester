@@ -43,6 +43,9 @@ COPY --from=backend-builder /server-bin ./datadog-grok-tester
 COPY --from=frontend-builder /app/client/dist ./dist
 RUN chown -R appuser:appuser /app
 USER appuser
+ARG ENABLE_DEBUG_LOGGING=false
+ENV DEBUG_LOGGING=$ENABLE_DEBUG_LOGGING
+
 ENV PORT=3001
 ENV HOST=0.0.0.0
 EXPOSE 3001
