@@ -11,10 +11,12 @@ import { TestTab } from './components/TestTab';
 import { LibraryTab } from './components/LibraryTab';
 import { useGrokSession } from './hooks/useGrokSession';
 import { parseTerraform } from './utils';
+import type { TabId } from './types';
 
 function App() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const ddIntegrationInputRef = useRef<HTMLInputElement>(null);
+  const tabRefs = useRef<Record<TabId, HTMLButtonElement | null>>({ test: null, history: null, docs: null });
   const [isTerraformImportOpen, setIsTerraformImportOpen] = useState(false);
 
   const [theme, setTheme] = useState<'light' | 'system' | 'dark'>(() => {
@@ -104,6 +106,22 @@ function App() {
     }
   };
 
+  const handleTabKeyDown = (e: React.KeyboardEvent) => {
+    const TAB_IDS: TabId[] = ['test', 'history', 'docs'];
+    const idx = TAB_IDS.indexOf(currentTab);
+    if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      const next = TAB_IDS[(idx + 1) % TAB_IDS.length];
+      setCurrentTab(next);
+      tabRefs.current[next]?.focus();
+    } else if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      const next = TAB_IDS[(idx - 1 + TAB_IDS.length) % TAB_IDS.length];
+      setCurrentTab(next);
+      tabRefs.current[next]?.focus();
+    }
+  };
+
   return (
     <div className="container">
       <div className="header-row">
@@ -148,74 +166,101 @@ function App() {
         </div>
       )}
 
-      <div className="tabs">
-        <div 
+      <div className="tabs" role="tablist">
+        <button
+          ref={el => { tabRefs.current['test'] = el; }}
+          role="tab"
+          id="tab-test"
+          aria-selected={currentTab === 'test'}
+          aria-controls="panel-test"
+          tabIndex={currentTab === 'test' ? 0 : -1}
           className={`tab ${currentTab === 'test' ? 'active' : ''}`}
           onClick={() => setCurrentTab('test')}
+          onKeyDown={handleTabKeyDown}
         >
           <Play size={16} /> Test
-        </div>
-        <div 
+        </button>
+        <button
+          ref={el => { tabRefs.current['history'] = el; }}
+          role="tab"
+          id="tab-history"
+          aria-selected={currentTab === 'history'}
+          aria-controls="panel-history"
+          tabIndex={currentTab === 'history' ? 0 : -1}
           className={`tab ${currentTab === 'history' ? 'active' : ''}`}
           onClick={() => setCurrentTab('history')}
+          onKeyDown={handleTabKeyDown}
         >
           <LibraryIcon size={16} /> Library
-        </div>
-        <div 
+        </button>
+        <button
+          ref={el => { tabRefs.current['docs'] = el; }}
+          role="tab"
+          id="tab-docs"
+          aria-selected={currentTab === 'docs'}
+          aria-controls="panel-docs"
+          tabIndex={currentTab === 'docs' ? 0 : -1}
           className={`tab ${currentTab === 'docs' ? 'active' : ''}`}
           onClick={() => setCurrentTab('docs')}
+          onKeyDown={handleTabKeyDown}
         >
           <BookOpen size={16} /> Docs
-        </div>
+        </button>
       </div>
 
       {currentTab === 'test' && (
-        <TestTab
-          isClearSessionPending={isClearSessionPending}
-          clearSession={clearSession}
-          saveToHistory={saveToHistory}
-          sessionName={sessionName}
-          setSessionName={setSessionName}
-          matchRules={matchRules}
-          setMatchRules={setMatchRules}
-          supportRules={supportRules}
-          setSupportRules={setSupportRules}
-          samples={samples}
-          addSample={addSample}
-          updateSample={updateSample}
-          removeSample={removeSample}
-          results={results}
-          exportAsTerraform={exportAsTerraform}
-        />
+        <div role="tabpanel" id="panel-test" aria-labelledby="tab-test">
+          <TestTab
+            isClearSessionPending={isClearSessionPending}
+            clearSession={clearSession}
+            saveToHistory={saveToHistory}
+            sessionName={sessionName}
+            setSessionName={setSessionName}
+            matchRules={matchRules}
+            setMatchRules={setMatchRules}
+            supportRules={supportRules}
+            setSupportRules={setSupportRules}
+            samples={samples}
+            addSample={addSample}
+            updateSample={updateSample}
+            removeSample={removeSample}
+            results={results}
+            exportAsTerraform={exportAsTerraform}
+          />
+        </div>
       )}
 
       {currentTab === 'history' && (
-        <LibraryTab
-          history={history}
-          exportHistory={exportHistory}
-          fileInputRef={fileInputRef}
-          importHistory={(e) => {
-            importHistory(e);
-            if (fileInputRef.current) fileInputRef.current.value = '';
-          }}
-          ddIntegrationInputRef={ddIntegrationInputRef}
-          importDatadogIntegrations={(e) => {
-            importDatadogIntegrations(e);
-            if (ddIntegrationInputRef.current) ddIntegrationInputRef.current.value = '';
-          }}
-          openTerraformImport={() => setIsTerraformImportOpen(true)}
-          clearHistory={clearHistory}
-          isClearHistoryPending={isClearHistoryPending}
-          currentSessionId={currentSessionId}
-          loadFromHistory={loadFromHistory}
-          pendingDeleteId={pendingDeleteId}
-          deleteFromHistory={deleteFromHistory}
-        />
+        <div role="tabpanel" id="panel-history" aria-labelledby="tab-history">
+          <LibraryTab
+            history={history}
+            exportHistory={exportHistory}
+            fileInputRef={fileInputRef}
+            importHistory={(e) => {
+              importHistory(e);
+              if (fileInputRef.current) fileInputRef.current.value = '';
+            }}
+            ddIntegrationInputRef={ddIntegrationInputRef}
+            importDatadogIntegrations={(e) => {
+              importDatadogIntegrations(e);
+              if (ddIntegrationInputRef.current) ddIntegrationInputRef.current.value = '';
+            }}
+            openTerraformImport={() => setIsTerraformImportOpen(true)}
+            clearHistory={clearHistory}
+            isClearHistoryPending={isClearHistoryPending}
+            currentSessionId={currentSessionId}
+            loadFromHistory={loadFromHistory}
+            pendingDeleteId={pendingDeleteId}
+            deleteFromHistory={deleteFromHistory}
+          />
+        </div>
       )}
 
       {currentTab === 'docs' && (
-        <div className="card markdown-body">
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>{docsContent}</ReactMarkdown>
+        <div role="tabpanel" id="panel-docs" aria-labelledby="tab-docs">
+          <div className="card markdown-body">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{docsContent}</ReactMarkdown>
+          </div>
         </div>
       )}
 
