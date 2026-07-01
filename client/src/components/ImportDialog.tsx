@@ -13,11 +13,33 @@ export const ImportDialog = ({ candidates, onConfirm, onCancel }: ImportDialogPr
     () => new Set(candidates.map(c => c.key))
   );
   const searchRef = useRef<HTMLInputElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const TITLE_ID = 'dd-import-dialog-title';
 
   // Focus the search field as soon as the dialog mounts.
   useEffect(() => {
     searchRef.current?.focus();
   }, []);
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'Escape') {
+      onCancel();
+      return;
+    }
+    if (e.key === 'Tab') {
+      const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), input, [tabindex]:not([tabindex="-1"])'
+      );
+      if (!focusable || focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey) {
+        if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+      } else {
+        if (document.activeElement === last) { e.preventDefault(); first.focus(); }
+      }
+    }
+  };
 
   const filtered = query.trim()
     ? candidates.filter(c =>
@@ -60,9 +82,17 @@ export const ImportDialog = ({ candidates, onConfirm, onCancel }: ImportDialogPr
 
   return (
     <div className="dialog-backdrop" onClick={onCancel}>
-      <div className="dialog" onClick={e => e.stopPropagation()} role="dialog">
+      <div
+        className="dialog"
+        ref={dialogRef}
+        onClick={e => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={TITLE_ID}
+        onKeyDown={handleKeyDown}
+      >
         <div className="dialog-header">
-          <span className="dialog-title">Import Datadog integrations</span>
+          <span id={TITLE_ID} className="dialog-title">Import Datadog integrations</span>
           <span className="dialog-subtitle">{candidates.length} grok processors found</span>
         </div>
 
