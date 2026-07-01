@@ -14,7 +14,7 @@ export const JsonFormatter = ({ data }: { data: unknown }) => {
     return (
       <span>
         [
-        <div style={{ paddingLeft: '1.5rem' }}>
+        <div className="json-indent">
           {data.map((item, i) => (
             <div key={i}>
               <JsonFormatter data={item} />
@@ -32,7 +32,7 @@ export const JsonFormatter = ({ data }: { data: unknown }) => {
     return (
       <span>
         {'{'}
-        <div style={{ paddingLeft: '1.5rem' }}>
+        <div className="json-indent">
           {keys.map((key, i) => (
             <div key={key}>
               <span className="json-key">"{key}"</span>: <JsonFormatter data={(data as Record<string, unknown>)[key]} />
