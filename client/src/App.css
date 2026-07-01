@@ -99,6 +99,9 @@ h1 {
   color: var(--text-muted);
   border-bottom: 2px solid transparent;
   transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .tab:hover {
@@ -289,6 +292,14 @@ input:focus {
 
 .result-error {
   color: var(--result-error-color);
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.result-error pre {
+  margin: 0;
+  white-space: pre-wrap;
 }
 
 .label-text {
@@ -710,11 +721,171 @@ input:focus {
   margin: 0 8px;
   color: var(--border-color);
 }
-.dropdown-item:hover {
-  background-color: var(--card-bg-color);
-  filter: brightness(1.1);
+
+/* ---- Tab icons ---- */
+.card.markdown-body {
+  padding: 2rem;
+  line-height: 1.6;
 }
 
-.dark-theme .dropdown-item:hover {
-  background-color: var(--border-color);
+/* ---- Rules card ---- */
+.rules-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.rules-form {
+  display: grid;
+  gap: 1rem;
+}
+
+.session-name-input {
+  margin-bottom: 0.5rem;
+}
+
+/* ---- Danger button: visible border for destructive / pending state ---- */
+.btn-danger--outlined {
+  border-color: var(--error-color);
+}
+
+/* ---- Result states ---- */
+.result-container.is-loading {
+  opacity: 0.6;
+}
+
+.result-success-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.result-json-pre {
+  margin: 0;
+}
+
+/* ---- Sample list footer ---- */
+.sample-footer {
+  margin-top: 1rem;
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* ---- Terraform export ---- */
+.export-section {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.btn-export {
+  width: 100%;
+  justify-content: center;
+  padding: 1rem;
+}
+
+/* ---- Library actions bar ---- */
+.section-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+/* ---- Dropdown ---- */
+.dropdown {
+  position: relative;
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 0.5rem;
+  background: var(--bg-color);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+  min-width: 240px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.dropdown-item {
+  padding: 0.75rem 1rem;
+  border: none;
+  background: none;
+  text-align: left;
+  color: var(--text-color);
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.dropdown-item + .dropdown-item {
+  border-top: 1px solid var(--border-color);
+}
+
+/* ---- Hidden file inputs ---- */
+.hidden-file-input {
+  display: none;
+}
+
+/* ---- Card variants ---- */
+.card--flush {
+  padding: 0;
+}
+
+/* ---- Empty state ---- */
+.empty-state {
+  padding: 3rem;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+/* ---- History item content ---- */
+.history-name {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 14px;
+  color: var(--text-color);
+}
+
+.history-meta {
+  color: var(--text-muted);
+}
+
+.history-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* ---- Dialog variants ---- */
+.dialog--wide {
+  max-width: 600px;
+}
+
+.dialog-body {
+  padding: 1rem 1.5rem;
+  flex-shrink: 0;
+}
+
+/* ---- Terraform HCL textarea ---- */
+.terraform-hcl-input {
+  width: 100%;
+  height: 250px;
+  min-height: unset;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  padding: 0.5rem;
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-color);
+  color: var(--text-color);
+  resize: vertical;
+}
+
+/* ---- JSON formatter ---- */
+.json-indent {
+  padding-left: 1.5rem;
+}
+.dropdown-item:hover {
+  background-color: var(--hover-bg);
 }
