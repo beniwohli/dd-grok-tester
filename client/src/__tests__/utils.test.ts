@@ -3,10 +3,10 @@ import { generateId, parseRuleLine, parseTerraform } from '../utils';
 
 describe('utils', () => {
   describe('generateId', () => {
-    it('should generate a string of length 9', () => {
+    it('should generate a UUID string', () => {
       const id = generateId();
       expect(typeof id).toBe('string');
-      expect(id.length).toBe(9);
+      expect(id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
     });
 
     it('should generate unique IDs', () => {
