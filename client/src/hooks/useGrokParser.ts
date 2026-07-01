@@ -17,8 +17,12 @@ export const useGrokParser = ({ currentTab }: UseGrokParserParams) => {
   });
 
   const [samples, setSamples] = useState<Sample[]>(() => {
-    const saved = localStorage.getItem('dd-grok-samples-v2');
-    if (saved) return JSON.parse(saved);
+    try {
+      const saved = localStorage.getItem('dd-grok-samples-v2');
+      if (saved) return JSON.parse(saved);
+    } catch {
+      // Corrupt data — fall through to default
+    }
     return [{ id: generateId(), text: '' }];
   });
   

@@ -37,8 +37,13 @@ export const useGrokHistory = ({
   showToast,
 }: UseGrokHistoryParams) => {
   const [history, setHistory] = useState<HistoryItem[]>(() => {
-    const saved = localStorage.getItem('dd-grok-history');
-    return saved ? JSON.parse(saved) : [];
+    try {
+      const saved = localStorage.getItem('dd-grok-history');
+      if (saved) return JSON.parse(saved);
+    } catch {
+      // Corrupt data — fall through to default
+    }
+    return [];
   });
 
   const [ddImportCandidates, setDdImportCandidates] = useState<DDImportCandidate[] | null>(null);
