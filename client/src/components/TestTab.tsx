@@ -43,11 +43,10 @@ export const TestTab = ({
       <div className="card">
         <div className="section-title">
           Rules
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <div className="rules-actions">
             <button
-              className={`btn ${isClearSessionPending ? 'btn-danger' : 'btn-outline'}`}
+              className={`btn ${isClearSessionPending ? 'btn-danger btn-danger--outlined' : 'btn-outline'}`}
               onClick={clearSession}
-              style={isClearSessionPending ? { border: '1px solid var(--error-color)' } : undefined}
             >
               <Eraser size={16} />
               {isClearSessionPending ? 'Click again to confirm' : 'Clear'}
@@ -57,7 +56,7 @@ export const TestTab = ({
             </button>
           </div>
         </div>
-        <div style={{ display: 'grid', gap: '1rem' }}>
+        <div className="rules-form">
           <div>
             <label className="label-text">Session Name (Optional)</label>
             <input 
@@ -65,7 +64,7 @@ export const TestTab = ({
               value={sessionName} 
               onChange={(e) => setSessionName(e.target.value)}
               placeholder="e.g. KyotoTycoon"
-              style={{ marginBottom: '0.5rem' }}
+              className="session-name-input"
             />
           </div>
           <div>
@@ -112,20 +111,20 @@ export const TestTab = ({
             </div>
 
             {results[sample.id] && sample.text.trim() && (
-              <div className="result-container" style={{ opacity: results[sample.id].isLoading ? 0.6 : 1 }}>
+              <div className={`result-container${results[sample.id].isLoading ? ' is-loading' : ''}`}>
                 {results[sample.id].isLoading && (
                   <div className="loading-indicator">Parsing...</div>
                 )}
                 
                 {results[sample.id].error ? (
                   <div className="result-error">
-                    <AlertCircle size={14} style={{ marginRight: '4px' }} />
-                    <pre style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{results[sample.id].error}</pre>
+                    <AlertCircle size={14} />
+                    <pre>{results[sample.id].error}</pre>
                   </div>
                 ) : results[sample.id].parsed ? (
                   <div>
                     <div className="result-success-header">
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <div className="result-success-label">
                         <CheckCircle2 size={14} /> Parsed Successfully
                       </div>
                       {results[sample.id].matched_rule && (
@@ -134,13 +133,13 @@ export const TestTab = ({
                         </div>
                       )}
                     </div>
-                    <pre style={{ margin: 0 }}>
+                    <pre className="result-json-pre">
                       <JsonFormatter data={results[sample.id].parsed} />
                     </pre>
                   </div>
                 ) : (
                   <div className="result-error">
-                    <AlertCircle size={14} style={{ marginRight: '4px' }} />
+                  <AlertCircle size={14} />
                     No match
                   </div>
                 )}
@@ -150,7 +149,7 @@ export const TestTab = ({
         ))}
         
         {samples.length > 0 && (
-          <div style={{ marginTop: '1rem', display: 'flex', justifyContent: 'flex-end' }}>
+          <div className="sample-footer">
             <button className="btn btn-outline" onClick={addSample}>
               <Plus size={16} /> Add Sample
             </button>
@@ -158,8 +157,8 @@ export const TestTab = ({
         )}
       </div>
 
-      <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-        <button className="btn btn-outline" onClick={exportAsTerraform} style={{ width: '100%', justifyContent: 'center', padding: '1rem' }}>
+      <div className="export-section">
+        <button className="btn btn-outline btn-export" onClick={exportAsTerraform}>
           <Code size={18} /> Export as Terraform (.tfvars)
         </button>
       </div>
