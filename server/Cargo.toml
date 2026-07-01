@@ -12,4 +12,5 @@ vrl = { version = "0.31.0", default-features = false, features = ["datadog_grok"
 thiserror = "2.0.11"
 axum = "0.7"
 tokio = { version = "1.37", features = ["rt-multi-thread", "macros", "net", "time"] }
+tower = { version = "0.5", features = ["limit"] }
 tower-http = { version = "0.6", features = ["fs", "trace"] }

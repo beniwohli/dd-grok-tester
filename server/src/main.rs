@@ -1,5 +1,6 @@
 use axum::{extract::DefaultBodyLimit, routing::post, Router};
 use tokio::net::TcpListener;
+use tower::limit::ConcurrencyLimitLayer;
 use tower_http::services::{ServeDir, ServeFile};
 use tower_http::trace::TraceLayer;
 use tracing::{info, Level};
@@ -8,6 +9,11 @@ mod error;
 mod grok;
 mod handlers;
 mod models;
+
+/// Maximum number of parse requests processed concurrently. Bounds the
+/// CPU-bound VRL compilation work so a burst of requests can't exhaust
+/// the blocking pool or starve the server.
+const MAX_CONCURRENT_PARSES: usize = 16;
 
 #[tokio::main]
 async fn main() {
@@ -28,6 +34,7 @@ async fn main() {
 
     let app = Router::new()
         .route("/api/parse", post(handlers::parse_grok_handler))
+        .route_layer(ConcurrencyLimitLayer::new(MAX_CONCURRENT_PARSES))
         .fallback_service(serve_dir)
         .layer(TraceLayer::new_for_http())
         .layer(DefaultBodyLimit::max(256 * 1024)); // 256 KB
