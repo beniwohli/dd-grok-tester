@@ -107,6 +107,7 @@ ${supportRulesList}
     currentTab,
     setCurrentTab,
     toast,
+    showToast,
     currentSessionId: parser.currentSessionId,
     sessionName: parser.sessionName,
     setSessionName: parser.setSessionName,

@@ -58,6 +58,7 @@ function App() {
     currentTab,
     setCurrentTab,
     toast,
+    showToast,
     currentSessionId,
     sessionName,
     setSessionName,
@@ -99,7 +100,7 @@ function App() {
       setIsTerraformImportOpen(false);
     } catch (e) {
       console.error(e);
-      alert('Failed to parse Terraform configuration. Please check the format.');
+      showToast('Failed to parse Terraform configuration. Please check the format.');
     }
   };
 
