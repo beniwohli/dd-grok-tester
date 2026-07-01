@@ -61,20 +61,10 @@ function AppContent() {
     setCurrentTab,
     toast,
     showToast,
-    currentSessionId,
-    history,
     ddImportCandidates,
     setDdImportCandidates,
-    loadFromHistory,
-    deleteFromHistory,
-    clearHistory,
-    exportHistory,
-    importHistory,
-    importDatadogIntegrations,
     importFromTerraform,
     confirmDdImport,
-    isClearHistoryPending,
-    pendingDeleteId,
   } = useGrokSessionContext();
 
   const handleTerraformImport = (hcl: string) => {
@@ -202,25 +192,9 @@ function AppContent() {
       {currentTab === 'history' && (
         <div role="tabpanel" id="panel-history" aria-labelledby="tab-history">
           <LibraryTab
-            history={history}
-            exportHistory={exportHistory}
             fileInputRef={fileInputRef}
-            importHistory={(e) => {
-              importHistory(e);
-              if (fileInputRef.current) fileInputRef.current.value = '';
-            }}
             ddIntegrationInputRef={ddIntegrationInputRef}
-            importDatadogIntegrations={(e) => {
-              importDatadogIntegrations(e);
-              if (ddIntegrationInputRef.current) ddIntegrationInputRef.current.value = '';
-            }}
             openTerraformImport={() => setIsTerraformImportOpen(true)}
-            clearHistory={clearHistory}
-            isClearHistoryPending={isClearHistoryPending}
-            currentSessionId={currentSessionId}
-            loadFromHistory={loadFromHistory}
-            pendingDeleteId={pendingDeleteId}
-            deleteFromHistory={deleteFromHistory}
           />
         </div>
       )}

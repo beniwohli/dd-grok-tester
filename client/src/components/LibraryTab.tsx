@@ -1,38 +1,40 @@
 import { useState, useRef, useEffect } from 'react';
 import { Download, Upload, Trash2, ChevronDown } from 'lucide-react';
-import type { HistoryItem } from '../types';
+import { useGrokSessionContext } from '../contexts/GrokSessionContext';
 
 interface LibraryTabProps {
-  history: HistoryItem[];
-  exportHistory: () => void;
   fileInputRef: React.RefObject<HTMLInputElement | null>;
-  importHistory: (e: React.ChangeEvent<HTMLInputElement>) => void;
   ddIntegrationInputRef: React.RefObject<HTMLInputElement | null>;
-  importDatadogIntegrations: (e: React.ChangeEvent<HTMLInputElement>) => void;
   openTerraformImport: () => void;
-  clearHistory: () => void;
-  isClearHistoryPending: boolean;
-  currentSessionId: string;
-  loadFromHistory: (item: HistoryItem) => void;
-  pendingDeleteId: string | null;
-  deleteFromHistory: (id: string) => void;
 }
 
 export const LibraryTab = ({
-  history,
-  exportHistory,
   fileInputRef,
-  importHistory,
   ddIntegrationInputRef,
-  importDatadogIntegrations,
   openTerraformImport,
-  clearHistory,
-  isClearHistoryPending,
-  currentSessionId,
-  loadFromHistory,
-  pendingDeleteId,
-  deleteFromHistory,
 }: LibraryTabProps) => {
+  const {
+    history,
+    exportHistory,
+    importHistory,
+    importDatadogIntegrations,
+    clearHistory,
+    isClearHistoryPending,
+    currentSessionId,
+    loadFromHistory,
+    pendingDeleteId,
+    deleteFromHistory,
+  } = useGrokSessionContext();
+
+  const handleImportHistory = (e: React.ChangeEvent<HTMLInputElement>) => {
+    importHistory(e);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const handleImportDatadogIntegrations = (e: React.ChangeEvent<HTMLInputElement>) => {
+    importDatadogIntegrations(e);
+    if (ddIntegrationInputRef.current) ddIntegrationInputRef.current.value = '';
+  };
   const [isImportDropdownOpen, setIsImportDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -97,14 +99,14 @@ export const LibraryTab = ({
               ref={fileInputRef} 
               className="hidden-file-input" 
               accept=".json" 
-              onChange={importHistory}
+              onChange={handleImportHistory}
             />
             <input 
               type="file" 
               ref={ddIntegrationInputRef} 
               className="hidden-file-input" 
               accept=".json" 
-              onChange={importDatadogIntegrations}
+              onChange={handleImportDatadogIntegrations}
             />
           </div>
         </div>
