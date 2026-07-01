@@ -86,7 +86,10 @@ pub async fn parse_grok_handler(
     match result {
         Ok(Ok(Ok(response))) => Ok(Json(response)),
         Ok(Ok(Err(app_err))) => Err(app_err),
-        Ok(Err(_join_err)) => Err(AppError::Timeout),
+        Ok(Err(join_err)) => {
+            tracing::error!("Parse task panicked: {join_err}");
+            Err(AppError::Internal)
+        }
         Err(_elapsed) => Err(AppError::Timeout),
     }
 }

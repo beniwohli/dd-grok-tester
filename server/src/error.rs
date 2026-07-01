@@ -21,6 +21,9 @@ pub enum AppError {
 
     #[error("Request timed out")]
     Timeout,
+
+    #[error("Internal server error")]
+    Internal,
 }
 
 // Convert from GrokError into AppError
@@ -48,6 +51,7 @@ impl IntoResponse for AppError {
             ),
             AppError::PayloadTooLarge(msg) => (StatusCode::PAYLOAD_TOO_LARGE, msg.clone()),
             AppError::Timeout => (StatusCode::REQUEST_TIMEOUT, self.to_string()),
+            AppError::Internal => (StatusCode::INTERNAL_SERVER_ERROR, self.to_string()),
         };
 
         let body = serde_json::json!({
