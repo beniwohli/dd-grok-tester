@@ -51,54 +51,34 @@ export const LibraryTab = ({
       <div className="card">
         <div className="section-title">
           Actions
-          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <div className="section-actions">
             <button className="btn btn-outline" onClick={exportHistory}>
               <Download size={16} /> Export JSON
             </button>
-            <div className="dropdown" ref={dropdownRef} style={{ position: 'relative' }}>
+            <div className="dropdown" ref={dropdownRef}>
               <button 
                 className="btn btn-outline" 
                 onClick={() => setIsImportDropdownOpen(!isImportDropdownOpen)}
               >
-                <Upload size={16} /> Import... <ChevronDown size={14} style={{ marginLeft: '4px' }} />
+                <Upload size={16} /> Import... <ChevronDown size={14} className="icon-ml" />
               </button>
               {isImportDropdownOpen && (
-                <div 
-                  className="dropdown-menu" 
-                  style={{
-                    position: 'absolute',
-                    top: '100%',
-                    right: 0,
-                    marginTop: '0.5rem',
-                    background: 'var(--bg-color)',
-                    border: '1px solid var(--border-color)',
-                    borderRadius: '6px',
-                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
-                    zIndex: 10,
-                    minWidth: '240px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    overflow: 'hidden'
-                  }}
-                >
+                <div className="dropdown-menu">
                   <button 
                     className="dropdown-item" 
                     onClick={() => { fileInputRef.current?.click(); setIsImportDropdownOpen(false); }}
-                    style={{ padding: '0.75rem 1rem', border: 'none', background: 'none', textAlign: 'left', color: 'var(--text-color)', cursor: 'pointer', fontSize: '14px' }}
                   >
                     Import JSON
                   </button>
                   <button 
                     className="dropdown-item" 
                     onClick={() => { ddIntegrationInputRef.current?.click(); setIsImportDropdownOpen(false); }}
-                    style={{ padding: '0.75rem 1rem', border: 'none', background: 'none', textAlign: 'left', color: 'var(--text-color)', cursor: 'pointer', fontSize: '14px', borderTop: '1px solid var(--border-color)' }}
                   >
                     Import Datadog Integrations
                   </button>
                   <button 
                     className="dropdown-item" 
                     onClick={() => { openTerraformImport(); setIsImportDropdownOpen(false); }}
-                    style={{ padding: '0.75rem 1rem', border: 'none', background: 'none', textAlign: 'left', color: 'var(--text-color)', cursor: 'pointer', fontSize: '14px', borderTop: '1px solid var(--border-color)' }}
                   >
                     Import Terraform (.tfvars)
                   </button>
@@ -106,8 +86,7 @@ export const LibraryTab = ({
               )}
             </div>
             <button
-              className="btn btn-danger"
-              style={{ border: '1px solid var(--error-color)' }}
+              className="btn btn-danger btn-danger--outlined"
               onClick={clearHistory}
             >
               <Trash2 size={16} />
@@ -116,23 +95,23 @@ export const LibraryTab = ({
             <input 
               type="file" 
               ref={fileInputRef} 
-              style={{ display: 'none' }} 
+              className="hidden-file-input" 
               accept=".json" 
               onChange={importHistory}
             />
             <input 
               type="file" 
               ref={ddIntegrationInputRef} 
-              style={{ display: 'none' }} 
+              className="hidden-file-input" 
               accept=".json" 
               onChange={importDatadogIntegrations}
             />
           </div>
         </div>
       </div>
-      <div className="card" style={{ padding: 0 }}>
+      <div className="card card--flush">
         {history.length === 0 ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+          <div className="empty-state">
             No saved sessions yet.
           </div>
         ) : (
@@ -147,11 +126,9 @@ export const LibraryTab = ({
                 </div>
                 <div className="history-summary">
                   {item.name ? (
-                    <strong style={{ display: 'block', marginBottom: '4px', fontSize: '14px', color: 'var(--text-color)' }}>
-                      {item.name}
-                    </strong>
+                    <strong className="history-name">{item.name}</strong>
                   ) : null}
-                  <div style={{ color: 'var(--text-muted)' }}>
+                  <div className="history-meta">
                     {item.matchRules.split('\n')[0] || 'No rules'} 
                     {item.matchRules.split('\n').length > 1 ? ' ...' : ''}
                     <span className="history-separator">|</span>
@@ -159,13 +136,12 @@ export const LibraryTab = ({
                   </div>
                 </div>
               </div>
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <div className="history-actions">
                 <button className="btn btn-outline" onClick={() => loadFromHistory(item)}>
                   Load
                 </button>
                 <button
-                  className="btn btn-danger"
-                  style={{ border: pendingDeleteId === item.id ? '1px solid var(--error-color)' : 'none' }}
+                  className={`btn btn-danger${pendingDeleteId === item.id ? ' btn-danger--outlined' : ''}`}
                   onClick={() => deleteFromHistory(item.id)}
                 >
                   {pendingDeleteId === item.id
