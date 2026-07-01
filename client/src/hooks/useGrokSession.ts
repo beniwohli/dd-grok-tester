@@ -8,10 +8,17 @@ import { useGrokHistory } from './useGrokHistory';
 export const useGrokSession = () => {
   const [currentTab, setCurrentTab] = useState<TabId>('test');
   const [toast, setToast] = useState<string | null>(null);
+  const toastTimerRef = useRef<number | null>(null);
 
   const showToast = useCallback((message: string) => {
+    if (toastTimerRef.current !== null) {
+      clearTimeout(toastTimerRef.current);
+    }
     setToast(message);
-    setTimeout(() => setToast(null), 3000);
+    toastTimerRef.current = window.setTimeout(() => {
+      setToast(null);
+      toastTimerRef.current = null;
+    }, 3000);
   }, []);
 
   // 1. Parser and Session State Hook
