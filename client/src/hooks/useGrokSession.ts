@@ -1,11 +1,12 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { generateId, parseRuleLine } from '../utils';
+import type { TabId } from '../types';
 import { useConfirmActions } from './useConfirmActions';
 import { useGrokParser } from './useGrokParser';
 import { useGrokHistory } from './useGrokHistory';
 
 export const useGrokSession = () => {
-  const [currentTab, setCurrentTab] = useState<'test' | 'history' | 'docs'>('test');
+  const [currentTab, setCurrentTab] = useState<TabId>('test');
   const [toast, setToast] = useState<string | null>(null);
 
   const showToast = useCallback((message: string) => {

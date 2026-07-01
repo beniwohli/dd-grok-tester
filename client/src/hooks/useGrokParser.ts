@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
 import { generateId } from '../utils';
-import type { Sample, ParseResult } from '../types';
+import type { Sample, ParseResult, TabId } from '../types';
 
 interface UseGrokParserParams {
-  currentTab: 'test' | 'history' | 'docs';
+  currentTab: TabId;
 }
 
 export const useGrokParser = ({ currentTab }: UseGrokParserParams) => {

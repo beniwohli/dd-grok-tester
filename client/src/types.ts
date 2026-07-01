@@ -1,3 +1,5 @@
+export type TabId = 'test' | 'history' | 'docs';
+
 export interface Sample {
   id: string;
   text: string;

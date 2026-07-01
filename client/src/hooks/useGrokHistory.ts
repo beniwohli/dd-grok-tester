@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { generateId } from '../utils';
-import type { Sample, ParseResult, HistoryItem, DDImportCandidate } from '../types';
+import type { Sample, ParseResult, HistoryItem, DDImportCandidate, TabId } from '../types';
 import type { PendingConfirm } from './useConfirmActions';
 
 interface UseGrokHistoryParams {
@@ -15,7 +15,7 @@ interface UseGrokHistoryParams {
   samples: Sample[];
   setSamples: (samples: Sample[]) => void;
   setResults: (results: Record<string, ParseResult> | ((prev: Record<string, ParseResult>) => Record<string, ParseResult>)) => void;
-  setCurrentTab: (tab: 'test' | 'history' | 'docs') => void;
+  setCurrentTab: (tab: TabId) => void;
   requestConfirm: (action: PendingConfirm, onConfirmed: () => void) => void;
   showToast: (message: string) => void;
 }
