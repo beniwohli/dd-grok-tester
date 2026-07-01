@@ -9,11 +9,11 @@ import { ImportDialog } from './components/ImportDialog';
 import { ImportTerraformDialog } from './components/ImportTerraformDialog';
 import { TestTab } from './components/TestTab';
 import { LibraryTab } from './components/LibraryTab';
-import { useGrokSession } from './hooks/useGrokSession';
+import { useGrokSessionContext, GrokSessionProvider } from './contexts/GrokSessionContext';
 import { parseTerraform } from './utils';
 import type { TabId } from './types';
 
-function App() {
+function AppContent() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const ddIntegrationInputRef = useRef<HTMLInputElement>(null);
   const tabRefs = useRef<Record<TabId, HTMLButtonElement | null>>({ test: null, history: null, docs: null });
@@ -90,7 +90,7 @@ function App() {
     isClearSessionPending,
     isClearHistoryPending,
     pendingDeleteId,
-  } = useGrokSession();
+  } = useGrokSessionContext();
 
   const handleTerraformImport = (hcl: string) => {
     try {
@@ -282,4 +282,10 @@ function App() {
   );
 }
 
-export default App;
+export default function App() {
+  return (
+    <GrokSessionProvider>
+      <AppContent />
+    </GrokSessionProvider>
+  );
+}
