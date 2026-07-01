@@ -153,19 +153,19 @@ function App() {
           className={`tab ${currentTab === 'test' ? 'active' : ''}`}
           onClick={() => setCurrentTab('test')}
         >
-          <Play size={16} style={{ marginBottom: '-3px', marginRight: '4px' }} /> Test
+          <Play size={16} /> Test
         </div>
         <div 
           className={`tab ${currentTab === 'history' ? 'active' : ''}`}
           onClick={() => setCurrentTab('history')}
         >
-          <LibraryIcon size={16} style={{ marginBottom: '-3px', marginRight: '4px' }} /> Library
+          <LibraryIcon size={16} /> Library
         </div>
         <div 
           className={`tab ${currentTab === 'docs' ? 'active' : ''}`}
           onClick={() => setCurrentTab('docs')}
         >
-          <BookOpen size={16} style={{ marginBottom: '-3px', marginRight: '4px' }} /> Docs
+          <BookOpen size={16} /> Docs
         </div>
       </div>
 
@@ -214,7 +214,7 @@ function App() {
       )}
 
       {currentTab === 'docs' && (
-        <div className="card markdown-body" style={{ padding: '2rem', lineHeight: '1.6' }}>
+        <div className="card markdown-body">
           <ReactMarkdown remarkPlugins={[remarkGfm]}>{docsContent}</ReactMarkdown>
         </div>
       )}
