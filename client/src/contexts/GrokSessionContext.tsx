@@ -11,6 +11,7 @@ export function GrokSessionProvider({ children }: { children: ReactNode }) {
   return <GrokSessionContext.Provider value={session}>{children}</GrokSessionContext.Provider>;
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useGrokSessionContext(): GrokSessionContextValue {
   const ctx = useContext(GrokSessionContext);
   if (!ctx) throw new Error('useGrokSessionContext must be used within GrokSessionProvider');
