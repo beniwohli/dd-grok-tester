@@ -272,6 +272,51 @@ mod tests {
         );
     }
 
+    // --- VRL string escaping tests ---
+    // These verify that special characters in match patterns are correctly escaped
+    // when embedded into the VRL source string literal.
+
+    #[test]
+    fn test_pattern_literal_double_quote() {
+        // Pattern contains literal " characters (e.g. to match a quoted value in the log).
+        // They must be escaped to \" in the generated VRL string literal.
+        test_parse(
+            r#"quotedRule status="%{word:status}""#,
+            r#"status="ok""#,
+            json!({"status": "ok"}),
+            None,
+        );
+    }
+
+    #[test]
+    fn test_pattern_backslash_separator() {
+        // Pattern contains \\ (two backslashes in memory), which is the Grok/ONIG regex
+        // for a single literal backslash character. The VRL escaping must double each \
+        // so the VRL string literal correctly encodes the two-backslash regex sequence.
+        // With the old {:?} Debug format this coincidentally worked, but this test
+        // explicitly documents the expected behaviour.
+        test_parse(
+            "backslashRule %{word:before}\\\\%{word:after}",
+            "hello\\world",
+            json!({"before": "hello", "after": "world"}),
+            None,
+        );
+    }
+
+    #[test]
+    fn test_pattern_double_quote_and_backslash() {
+        // Pattern contains both " and \ to exercise both escaping paths together.
+        // Matches lines like:  key="C:\path"
+        test_parse(
+            r#"mixedRule key="%{data:path}""#,
+            r#"key="C:\path""#,
+            json!({"path": r"C:\path"}),
+            None,
+        );
+    }
+
+    // --- end VRL string escaping tests ---
+
     #[test]
     fn test_cross_referencing_match_rules() {
         test_parse(
