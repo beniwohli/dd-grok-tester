@@ -156,6 +156,7 @@ textarea:focus {
   border-radius: 0.5rem;
   background-color: var(--editor-bg);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  position: relative;
 }
 
 .editor-container:focus-within {

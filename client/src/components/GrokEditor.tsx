@@ -334,7 +334,6 @@ export const GrokEditor = ({ value, onChange, placeholder }: { value: string, on
     <div
       ref={containerRef}
       className="editor-container"
-      style={{ position: 'relative' }}
       onKeyDown={handleKeyDown}
     >
       <CodeEditor
