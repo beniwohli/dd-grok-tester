@@ -62,22 +62,9 @@ function AppContent() {
     toast,
     showToast,
     currentSessionId,
-    sessionName,
-    setSessionName,
-    samples,
-    matchRules,
-    setMatchRules,
-    supportRules,
-    setSupportRules,
     history,
-    results,
     ddImportCandidates,
     setDdImportCandidates,
-    addSample,
-    updateSample,
-    removeSample,
-    clearSession,
-    saveToHistory,
     loadFromHistory,
     deleteFromHistory,
     clearHistory,
@@ -86,8 +73,6 @@ function AppContent() {
     importDatadogIntegrations,
     importFromTerraform,
     confirmDdImport,
-    exportAsTerraform,
-    isClearSessionPending,
     isClearHistoryPending,
     pendingDeleteId,
   } = useGrokSessionContext();
@@ -210,23 +195,7 @@ function AppContent() {
 
       {currentTab === 'test' && (
         <div role="tabpanel" id="panel-test" aria-labelledby="tab-test">
-          <TestTab
-            isClearSessionPending={isClearSessionPending}
-            clearSession={clearSession}
-            saveToHistory={saveToHistory}
-            sessionName={sessionName}
-            setSessionName={setSessionName}
-            matchRules={matchRules}
-            setMatchRules={setMatchRules}
-            supportRules={supportRules}
-            setSupportRules={setSupportRules}
-            samples={samples}
-            addSample={addSample}
-            updateSample={updateSample}
-            removeSample={removeSample}
-            results={results}
-            exportAsTerraform={exportAsTerraform}
-          />
+          <TestTab />
         </div>
       )}
 

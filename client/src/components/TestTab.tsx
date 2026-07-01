@@ -1,43 +1,26 @@
 import { Plus, Trash2, AlertCircle, CheckCircle2, Tag, Save, Eraser, Code } from 'lucide-react';
 import { GrokEditor } from './GrokEditor';
 import { JsonFormatter } from './JsonFormatter';
-import type { Sample, ParseResult } from '../types';
+import { useGrokSessionContext } from '../contexts/GrokSessionContext';
 
-interface TestTabProps {
-  isClearSessionPending: boolean;
-  clearSession: () => void;
-  saveToHistory: () => void;
-  sessionName: string;
-  setSessionName: (name: string) => void;
-  matchRules: string;
-  setMatchRules: (rules: string) => void;
-  supportRules: string;
-  setSupportRules: (rules: string) => void;
-  samples: Sample[];
-  addSample: () => void;
-  updateSample: (id: string, value: string) => void;
-  removeSample: (id: string) => void;
-  results: Record<string, ParseResult>;
-  exportAsTerraform: () => void;
-}
-
-export const TestTab = ({
-  isClearSessionPending,
-  clearSession,
-  saveToHistory,
-  sessionName,
-  setSessionName,
-  matchRules,
-  setMatchRules,
-  supportRules,
-  setSupportRules,
-  samples,
-  addSample,
-  updateSample,
-  removeSample,
-  results,
-  exportAsTerraform,
-}: TestTabProps) => {
+export const TestTab = () => {
+  const {
+    isClearSessionPending,
+    clearSession,
+    saveToHistory,
+    sessionName,
+    setSessionName,
+    matchRules,
+    setMatchRules,
+    supportRules,
+    setSupportRules,
+    samples,
+    addSample,
+    updateSample,
+    removeSample,
+    results,
+    exportAsTerraform,
+  } = useGrokSessionContext();
   return (
     <>
       <div className="card">
