@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
-import { generateId, parseRuleLine } from '../utils';
+import { generateId, parseRuleLine, escapeHCLString } from '../utils';
 import type { TabId } from '../types';
 import { useConfirmActions } from './useConfirmActions';
 import { useGrokParser } from './useGrokParser';
@@ -56,10 +56,6 @@ export const useGrokSession = () => {
       showToast('Session cleared');
     });
   }, [confirmActions, parser, showToast]);
-
-  const escapeHCLString = (str: string) => {
-    return str.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/%/g, '%%');
-  };
 
   const exportAsTerraform = useCallback(() => {
     const toHCLBlock = (line: string) => {

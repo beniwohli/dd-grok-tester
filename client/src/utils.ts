@@ -28,6 +28,10 @@ const unescapeHCLString = (str: string) => {
   return str.replace(/%%/g, '%').replace(/\\"/g, '"').replace(/\\\\/g, '\\');
 };
 
+export const escapeHCLString = (str: string) => {
+  return str.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/%/g, '%%');
+};
+
 export const parseTerraform = (hcl: string): ParsedTerraform => {
   let idPrefix = '';
   const idPrefixMatch = hcl.match(/id_prefix\s*=\s*"((?:[^"\\]|\\.)*)"/);
