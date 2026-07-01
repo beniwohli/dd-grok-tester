@@ -1,4 +1,4 @@
-export const generateId = () => Math.random().toString(36).substr(2, 9);
+export const generateId = () => crypto.randomUUID();
 
 /**
  * Splits a single rule line of the form "NAME PATTERN" into its constituent
