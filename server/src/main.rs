@@ -1,6 +1,5 @@
 use axum::{extract::DefaultBodyLimit, routing::post, Router};
 use tokio::net::TcpListener;
-use tower_http::cors::CorsLayer;
 use tower_http::services::{ServeDir, ServeFile};
 use tower_http::trace::TraceLayer;
 use tracing::{info, Level};
@@ -24,9 +23,6 @@ async fn main() {
         .parse::<u16>()
         .expect("PORT must be a number");
 
-    // Setup CORS
-    let cors = CorsLayer::permissive();
-
     // Serve static files with fallback to index.html
     let serve_dir = ServeDir::new("dist").fallback(ServeFile::new("dist/index.html"));
 
@@ -34,7 +30,6 @@ async fn main() {
         .route("/api/parse", post(handlers::parse_grok_handler))
         .fallback_service(serve_dir)
         .layer(TraceLayer::new_for_http())
-        .layer(cors)
         .layer(DefaultBodyLimit::max(256 * 1024)); // 256 KB
 
     let host = std::env::var("HOST").unwrap_or_else(|_| "127.0.0.1".to_string());
