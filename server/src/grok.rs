@@ -55,10 +55,13 @@ impl GrokEngine {
 
         let mut compiled_patterns = Vec::new();
         for (name, pattern) in named_patterns {
+            // Escape the pattern for embedding inside a VRL double-quoted string.
+            // Rust's {:?} produces Rust Debug escaping which is not VRL's escaping:
+            // backslashes would be doubled incorrectly and other edge cases diverge.
+            let vrl_escaped = pattern.replace('\\', "\\\\").replace('"', "\\\"");
             let vrl_program = format!(
-                "result, err = parse_groks(.message, [{:?}], {})\n\
-                 if is_null(err) {{ . = object!(result) }}\n",
-                pattern, aliases_json
+                "result, err = parse_groks(.message, [\"{vrl_escaped}\"], {aliases_json})\n\
+                 if is_null(err) {{ . = object!(result) }}\n"
             );
 
             let compiled = compile(&vrl_program, &stdlib::all());
