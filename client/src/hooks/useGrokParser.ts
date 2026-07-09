@@ -113,6 +113,7 @@ export const useGrokParser = ({ currentTab }: UseGrokParserParams) => {
             isLoading: false,
             parsed: resultsData[index]?.parsed,
             matched_rule: resultsData[index]?.matched_rule,
+            error: resultsData[index]?.error,
           };
         });
         return next;

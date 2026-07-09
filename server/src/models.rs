@@ -11,6 +11,8 @@ pub struct ParseRequest {
 pub struct ParseResponse {
     pub parsed: Option<serde_json::Value>,
     pub matched_rule: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error: Option<String>,
 }
 
 #[derive(Serialize)]

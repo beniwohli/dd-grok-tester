@@ -16,6 +16,21 @@ pub enum GrokError {
     CompilationError { rule_name: String, message: String },
 }
 
+/// Result of parsing a single sample against all compiled patterns.
+pub enum ParseResult {
+    /// A rule matched and produced parsed output.
+    Matched {
+        rule_name: String,
+        parsed: serde_json::Value,
+    },
+    /// No rule matched. If any rules produced runtime errors (as opposed
+    /// to simply not matching), they are collected here so the caller can
+    /// surface them to the user.
+    NoMatch {
+        errors: Vec<String>,
+    },
+}
+
 pub struct GrokEngine {
     compiled_patterns: Vec<(String, vrl::compiler::Program)>,
 }
@@ -102,7 +117,9 @@ impl GrokEngine {
         Ok(Self { compiled_patterns })
     }
 
-    pub fn parse(&self, sample: &str) -> Result<Option<(String, serde_json::Value)>, GrokError> {
+    pub fn parse(&self, sample: &str) -> ParseResult {
+        let mut errors = Vec::new();
+
         for (name, program) in &self.compiled_patterns {
             let mut event: BTreeMap<_, _> = Default::default();
             event.insert("message".into(), Value::from(sample.to_string()));
@@ -125,17 +142,20 @@ impl GrokEngine {
                             );
 
                         if !only_original_message {
-                            return Ok(Some((name.clone(), vrl_value_to_json(target.value))));
+                            return ParseResult::Matched {
+                                rule_name: name.clone(),
+                                parsed: vrl_value_to_json(target.value),
+                            };
                         }
                     }
                 }
-                Err(_) => {
-                    // Did not match
+                Err(e) => {
+                    errors.push(format!("Rule '{}': {}", name, e));
                 }
             }
         }
 
-        Ok(None)
+        ParseResult::NoMatch { errors }
     }
 }
 
@@ -175,11 +195,13 @@ mod tests {
 
     fn test_parse(rule: &str, sample: &str, expected: serde_json::Value, support: Option<&str>) {
         let engine = GrokEngine::new(rule, support).expect("Failed to create GrokEngine");
-        let result = engine
-            .parse(sample)
-            .expect("Parse error")
-            .expect("No match found");
-        let (_, parsed) = result;
+        let result = engine.parse(sample);
+        let parsed = match result {
+            ParseResult::Matched { parsed, .. } => parsed,
+            ParseResult::NoMatch { errors } => {
+                panic!("No match found. Errors: {:?}", errors);
+            }
+        };
 
         // Filter actual results to only include the keys we expect to see
         if let serde_json::Value::Object(expected_obj) = expected {
@@ -225,8 +247,11 @@ mod tests {
     fn test_parsing_dates() {
         // HH:mm:ss without a date defaults to today. We just check it parses to something sensible.
         let engine = GrokEngine::new("date_rule %{date(\"HH:mm:ss\"):date}", None).unwrap();
-        let result = engine.parse("14:20:15").unwrap().unwrap();
-        assert!(result.1.as_object().unwrap().contains_key("date"));
+        let parsed = match engine.parse("14:20:15") {
+            ParseResult::Matched { parsed, .. } => parsed,
+            ParseResult::NoMatch { errors } => panic!("No match found. Errors: {:?}", errors),
+        };
+        assert!(parsed.as_object().unwrap().contains_key("date"));
     }
 
     #[test]
