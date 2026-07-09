@@ -4,10 +4,15 @@ use vrl::prelude::state::RuntimeState;
 use vrl::stdlib;
 use vrl::value::{Secrets, Value};
 
-#[derive(Debug)]
+#[derive(Debug, thiserror::Error)]
 pub enum GrokError {
+    #[error("Malformed support rule (expected \"NAME PATTERN\"): {0}")]
     MalformedSupportRule(String),
+
+    #[error("No match rules provided")]
     NoMatchRules,
+
+    #[error("Rule '{rule_name}': {message}")]
     CompilationError { rule_name: String, message: String },
 }
 
