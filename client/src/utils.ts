@@ -41,7 +41,7 @@ export const escapeHCLString = (str: string) => {
   return str.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/%/g, '%%');
 };
 
-export const parseTerraform = (hcl: string): ParsedTerraform => {
+const parseSingleTerraformBlock = (hcl: string): ParsedTerraform => {
   let idPrefix = '';
   const idPrefixMatch = hcl.match(/id_prefix\s*=\s*"((?:[^"\\]|\\.)*)"/);
   if (idPrefixMatch) {
@@ -93,4 +93,65 @@ export const parseTerraform = (hcl: string): ParsedTerraform => {
   const supportRules = parseItems(supportRulesStr);
 
   return { idPrefix, matchRules, supportRules };
+};
+
+/**
+ * Splits a top-level HCL array into individual `{...}` blocks by tracking
+ * brace depth. Returns the content between (and including) each pair of
+ * balanced braces at depth 1.
+ */
+const splitTopLevelBlocks = (hcl: string): string[] => {
+  const blocks: string[] = [];
+  let depth = 0;
+  let blockStart = -1;
+  let inString = false;
+  let escaped = false;
+
+  for (let i = 0; i < hcl.length; i++) {
+    const ch = hcl[i];
+
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+    if (ch === '\\') {
+      escaped = true;
+      continue;
+    }
+    if (ch === '"') {
+      inString = !inString;
+      continue;
+    }
+    if (inString) continue;
+
+    if (ch === '{') {
+      if (depth === 0) {
+        blockStart = i;
+      }
+      depth++;
+    } else if (ch === '}') {
+      depth--;
+      if (depth === 0 && blockStart !== -1) {
+        blocks.push(hcl.substring(blockStart, i + 1));
+        blockStart = -1;
+      }
+    }
+  }
+
+  return blocks;
+};
+
+export const parseTerraform = (hcl: string): ParsedTerraform[] => {
+  // Strip optional variable assignment prefix (e.g. "grok_processors = ")
+  let trimmed = hcl.trim();
+  trimmed = trimmed.replace(/^\w+\s*=\s*/, '');
+
+  // If the input starts with '[', treat it as an array of blocks
+  if (trimmed.startsWith('[')) {
+    const blocks = splitTopLevelBlocks(trimmed);
+    return blocks.map(parseSingleTerraformBlock);
+  }
+
+  // Single block
+  return [parseSingleTerraformBlock(trimmed)];
 };

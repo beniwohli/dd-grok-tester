@@ -70,7 +70,7 @@ function AppContent() {
   const handleTerraformImport = (hcl: string) => {
     try {
       const parsed = parseTerraform(hcl);
-      if (!parsed.idPrefix && !parsed.matchRules && !parsed.supportRules) {
+      if (parsed.length === 0 || parsed.every(p => !p.idPrefix && !p.matchRules && !p.supportRules)) {
         throw new Error('No valid configuration found');
       }
       importFromTerraform(parsed);

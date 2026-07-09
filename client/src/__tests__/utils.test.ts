@@ -70,15 +70,82 @@ describe('utils', () => {
       }`;
 
       const parsed = parseTerraform(hcl);
-      expect(parsed.idPrefix).toBe('apache');
-      expect(parsed.matchRules).toBe(
+      expect(parsed).toHaveLength(1);
+      expect(parsed[0].idPrefix).toBe('apache');
+      expect(parsed[0].matchRules).toBe(
         `nevis_app_with_trace \\[%{_log.file.name}\\] %{_timestamp_app} %{notSpace:thread.id} %{regex("[0-9a-f]{32}"):trace.id} %{regex("[0-9a-f]{16}"):span.id}\\s+%{notSpace:log.category}\\s+%{_log.level}\\s+%{_message}\n` +
         `nevis_app_no_trace \\[%{_log.file.name}\\] %{_timestamp_app} %{notSpace:thread.id}\\s+%{notSpace:log.category}\\s+%{_log.level}\\s+%{_message}`
       );
-      expect(parsed.supportRules).toBe(
+      expect(parsed[0].supportRules).toBe(
         `_log.file.name %{data:log.file.name}\n` +
         `_timestamp_app %{date("yyyy-MM-dd'T'HH:mm:ss,SSS"):timestamp}`
       );
+    });
+
+    it('should parse an array of multiple terraform blocks', () => {
+      const hcl = `[
+  {
+    id_prefix   = "gha-runner"
+    log_sources = ["gha-runner"]
+    rules = [
+      {
+        name = "github_runner_rule"
+        rule = "\\\\[%%{word:component} %%{date(\\"yyyy-MM-dd HH:mm:ss'Z'\\"):timestamp} %%{word:log.level} %%{word:log.logger}\\\\]\\\\s+%%{data:message}"
+      },
+      {
+        name = "catchall"
+        rule = "%%{data:message_catchall}"
+      }
+    ]
+  },
+  {
+    id_prefix   = "ci360-agents-sdk"
+    log_sources = ["sas"]
+    rules = [
+      {
+        name = "log4j"
+        rule = "%%{date(\\"yyyy-MM-dd HH:mm:ss,SSS\\"):timestamp} %%{word:log.level}\\\\s+\\\\[%%{notSpace:logger.thread_name}\\\\] %%{notSpace:log.logger} - %%{data:message}"
+      }
+    ]
+    support_rules = [
+      {
+        name = "_timestamp"
+        rule = "%%{date(\\"yyyy-MM-dd HH:mm:ss,SSS\\"):timestamp}"
+      }
+    ]
+  }
+]`;
+
+      const parsed = parseTerraform(hcl);
+      expect(parsed).toHaveLength(2);
+
+      expect(parsed[0].idPrefix).toBe('gha-runner');
+      expect(parsed[0].matchRules).toContain('github_runner_rule');
+      expect(parsed[0].matchRules).toContain('catchall');
+      expect(parsed[0].supportRules).toBe('');
+
+      expect(parsed[1].idPrefix).toBe('ci360-agents-sdk');
+      expect(parsed[1].matchRules).toContain('log4j');
+      expect(parsed[1].supportRules).toContain('_timestamp');
+    });
+
+    it('should strip a variable assignment prefix', () => {
+      const hcl = `grok_processors = [
+  {
+    id_prefix   = "test"
+    rules = [
+      {
+        name = "my_rule"
+        rule = "%%{data:message}"
+      }
+    ]
+  }
+]`;
+
+      const parsed = parseTerraform(hcl);
+      expect(parsed).toHaveLength(1);
+      expect(parsed[0].idPrefix).toBe('test');
+      expect(parsed[0].matchRules).toBe('my_rule %{data:message}');
     });
   });
 });

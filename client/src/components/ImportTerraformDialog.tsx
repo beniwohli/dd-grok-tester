@@ -8,6 +8,7 @@ interface ImportTerraformDialogProps {
 export const ImportTerraformDialog = ({ onConfirm, onCancel }: ImportTerraformDialogProps) => {
   const [hcl, setHcl] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
   const TITLE_ID = 'tf-import-dialog-title';
 
@@ -17,6 +18,15 @@ export const ImportTerraformDialog = ({ onConfirm, onCancel }: ImportTerraformDi
 
   const handleConfirm = () => {
     onConfirm(hcl);
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const text = await file.text();
+    setHcl(text);
+    // Reset so the same file can be re-selected
+    e.target.value = '';
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
@@ -63,6 +73,20 @@ export const ImportTerraformDialog = ({ onConfirm, onCancel }: ImportTerraformDi
             value={hcl}
             onChange={e => setHcl(e.target.value)}
           />
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".tf,.tfvars,.hcl"
+            style={{ display: 'none' }}
+            onChange={handleFileSelect}
+          />
+          <button
+            className="btn btn-outline btn-file-select"
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            Choose file…
+          </button>
         </div>
 
         <div className="dialog-footer">

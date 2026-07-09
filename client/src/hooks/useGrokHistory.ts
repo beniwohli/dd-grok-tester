@@ -194,17 +194,17 @@ export const useGrokHistory = ({
     showToast(`Imported ${newSessions.length} session${newSessions.length !== 1 ? 's' : ''}`);
   };
 
-  const importFromTerraform = (parsed: { idPrefix: string; matchRules: string; supportRules: string; }) => {
-    const newSession: HistoryItem = {
+  const importFromTerraform = (parsed: { idPrefix: string; matchRules: string; supportRules: string; }[]) => {
+    const newSessions: HistoryItem[] = parsed.map(p => ({
       id: generateId(),
-      name: parsed.idPrefix || 'Terraform Import',
+      name: p.idPrefix || 'Terraform Import',
       timestamp: Date.now(),
-      matchRules: parsed.matchRules,
-      supportRules: parsed.supportRules,
+      matchRules: p.matchRules,
+      supportRules: p.supportRules,
       samples: [],
-    };
-    setHistory(prev => [newSession, ...prev]);
-    showToast('Imported Terraform configuration');
+    }));
+    setHistory(prev => [...newSessions, ...prev]);
+    showToast(`Imported ${newSessions.length} Terraform configuration${newSessions.length !== 1 ? 's' : ''}`);
   };
 
   return {
